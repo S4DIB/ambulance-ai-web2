@@ -256,7 +256,7 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
           <div className="mb-4 sm:mb-6">
             <div className="flex justify-between text-sm text-gray-600 mb-2">
               <span>{t('start')}</span>
-              <span>{statusInfo.progress}% {t('complete')}</span>
+              <span>{statusInfo.progress.toFixed(2)}% {t('complete')}</span>
               <span>{t('arrived')}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3 sm:h-4">
@@ -266,7 +266,7 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
               ></div>
             </div>
             <div className="text-center mt-2 text-xs sm:text-sm text-gray-500">
-              {100 - statusInfo.progress}% {t('remaining')}
+              {(100 - statusInfo.progress).toFixed(2)}% {t('remaining')}
             </div>
           </div>
         )}

@@ -208,10 +208,6 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ updateState }) => {
         <div className="space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Ambulance Request History</h2>
-            <button className="flex items-center justify-center px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 text-sm sm:text-base">
-              <Download className="h-4 w-4 mr-2" />
-              Export History
-            </button>
           </div>
 
           {ambulanceHistory.length === 0 ? (

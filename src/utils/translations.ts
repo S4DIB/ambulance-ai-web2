@@ -83,7 +83,6 @@ export interface Translation {
   routineCheckup: string;
   specialistConsultation: string;
   diagnosticTest: string;
-  surgery: string;
   therapySession: string;
   hospitalDischarge: string;
   interHospitalTransfer: string;
@@ -309,7 +308,6 @@ export interface Translation {
   vehicleId: string;
   crew: string;
   equipment: string;
-  priorityLevel: string;
   contact: string;
   statusTimeline: string;
   aiDispatchInitiated: string;
@@ -413,6 +411,12 @@ export interface Translation {
   hours: string;
   km: string;
   cost: string;
+  
+  // AI Medical Assessment
+  describeSymptomsLabel: string;
+  symptomsDetailsHint: string;
+  provideSymptomsOrPhotos: string;
+  symptomsPlaceholder: string;
 }
 
 export const translations: Record<string, Translation> = {
@@ -501,7 +505,6 @@ export const translations: Record<string, Translation> = {
     routineCheckup: "Routine Checkup",
     specialistConsultation: "Specialist Consultation",
     diagnosticTest: "Diagnostic Test",
-    surgery: "Surgery",
     therapySession: "Therapy Session",
     hospitalDischarge: "Hospital Discharge",
     interHospitalTransfer: "Inter-hospital Transfer",
@@ -727,7 +730,6 @@ export const translations: Record<string, Translation> = {
     vehicleId: "Vehicle ID:",
     crew: "Crew:",
     equipment: "Equipment:",
-    priorityLevel: "Priority Level:",
     contact: "Contact:",
     statusTimeline: "Status Timeline",
     aiDispatchInitiated: "AI dispatch initiated",
@@ -830,7 +832,13 @@ export const translations: Record<string, Translation> = {
     seconds: "seconds",
     hours: "hours",
     km: "km",
-    cost: "Cost"
+    cost: "Cost",
+    
+    // AI Medical Assessment
+    describeSymptomsLabel: "Please describe your current symptoms, pain level, and any concerns:",
+    symptomsDetailsHint: "Be as detailed as possible. Include when symptoms started, severity, and any factors that make them better or worse.",
+    provideSymptomsOrPhotos: "Please provide your symptoms or upload photos for assessment.",
+    symptomsPlaceholder: "Describe your symptoms here...",
   },
   
   bn: {
@@ -918,7 +926,6 @@ export const translations: Record<string, Translation> = {
     routineCheckup: "নিয়মিত চেকআপ",
     specialistConsultation: "বিশেষজ্ঞ পরামর্শ",
     diagnosticTest: "ডায়াগনস্টিক টেস্ট",
-    surgery: "সার্জারি",
     therapySession: "থেরাপি সেশন",
     hospitalDischarge: "হাসপাতাল ছাড়পত্র",
     interHospitalTransfer: "আন্তঃহাসপাতাল স্থানান্তর",
@@ -1055,7 +1062,7 @@ export const translations: Record<string, Translation> = {
     neurology: "নিউরোলজি",
     trauma: "ট্রমা",
     icu: "আইসিইউ",
-    surgery: "সার্জারি",
+    surgery: "Surgery",
     oncology: "অনকোলজি",
     allInsurance: "সব বীমা",
     getAiRecommendations: "এআই হাসপাতালের সুপারিশ পান",
@@ -1144,7 +1151,6 @@ export const translations: Record<string, Translation> = {
     vehicleId: "গাড়ির আইডি:",
     crew: "ক্রু:",
     equipment: "সরঞ্জাম:",
-    priorityLevel: "অগ্রাধিকার স্তর:",
     contact: "যোগাযোগ:",
     statusTimeline: "স্ট্যাটাস টাইমলাইন",
     aiDispatchInitiated: "এআই ডিসপ্যাচ শুরু",
@@ -1247,7 +1253,13 @@ export const translations: Record<string, Translation> = {
     seconds: "সেকেন্ড",
     hours: "ঘন্টা",
     km: "কিমি",
-    cost: "খরচ"
+    cost: "খরচ",
+    
+    // AI Medical Assessment
+    describeSymptomsLabel: "আপনার বর্তমান লক্ষণ, ব্যথার মাত্রা এবং যেকোনো উদ্বেগ বিস্তারিতভাবে লিখুন:",
+    symptomsDetailsHint: "যতটা সম্ভব বিস্তারিত লিখুন। কখন থেকে শুরু হয়েছে, কতটা তীব্র, এবং কী করলে ভালো বা খারাপ হয় তা উল্লেখ করুন।",
+    provideSymptomsOrPhotos: "মূল্যায়নের জন্য দয়া করে আপনার লক্ষণ লিখুন বা ছবি আপলোড করুন।",
+    symptomsPlaceholder: "এখানে আপনার লক্ষণ লিখুন...",
   }
 };
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Brain, MessageCircle, CheckCircle, AlertTriangle, ArrowRight, Mic, MicOff, Volume2, Camera, Upload, X, Eye } from 'lucide-react';
 import { analytics } from '../../utils/analytics';
 import { ImageOptimizer } from '../../utils/performanceOptimizer';
+import { useTranslation } from '../../utils/translations';
 
 interface AIAssessmentScreenProps {
   updateState: (updates: any) => void;
@@ -9,6 +10,7 @@ interface AIAssessmentScreenProps {
 
 const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) => {
   const state = (window as any).state;
+  const { t } = useTranslation();
   const [symptoms, setSymptoms] = useState(state.symptoms || '');
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
@@ -457,10 +459,10 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <div className="text-center mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">
-          AI Medical Assessment
+          {t('aiMedicalAssessment')}
         </h1>
         <p className="text-base sm:text-lg text-gray-600 px-4">
-          Get an AI-powered preliminary assessment of your symptoms with photo analysis
+          {t('aiMedicalAssessmentDesc')}
         </p>
       </div>
 
@@ -469,7 +471,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
         <div className="mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
             <Camera className="inline h-4 w-4 sm:h-5 sm:w-5 mr-2 text-purple-600" />
-            Upload Photos for AI Analysis
+            {t('uploadPhotos')}
           </h2>
           
           {/* Drag and Drop Area */}
@@ -498,10 +500,10 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
               </div>
               <div>
                 <p className="text-base sm:text-lg font-semibold text-gray-900">
-                  Drop photos here or click to upload
+                  {t('dropPhotosHere')}
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                  Upload images of injuries, rashes, wounds, or any visible symptoms
+                  {t('uploadImagesDesc')}
                 </p>
               </div>
               
@@ -512,7 +514,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                   className="inline-flex items-center px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 text-sm sm:text-base"
                 >
                   <Camera className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                  Take Photo
+                  {t('takePhoto')}
                 </button>
                 <button
                   type="button"
@@ -520,7 +522,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                   className="inline-flex items-center px-3 sm:px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors duration-200 text-sm sm:text-base"
                 >
                   <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                  Choose Files
+                  {t('chooseFiles')}
                 </button>
               </div>
             </div>
@@ -582,12 +584,12 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
         <div className="mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
             <MessageCircle className="inline h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
-            Describe Your Symptoms
+            {t('describeSymptoms')}
           </h2>
           
           <div className="space-y-3 sm:space-y-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Please describe your current symptoms, pain level, and any concerns:
+              {t('describeSymptomsLabel')}
             </label>
             
             <div className="relative">
@@ -596,7 +598,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                 onChange={(e) => setSymptoms(e.target.value)}
                 rows={6}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 pr-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
-                placeholder="Example: I have been experiencing chest pain for the last hour, along with shortness of breath and dizziness. The pain is sharp and gets worse when I move..."
+                placeholder={t('symptomsPlaceholder')}
               />
               
               {/* Voice Input Controls */}
@@ -610,7 +612,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                         ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse' 
                         : 'bg-blue-500 text-white hover:bg-blue-600'
                     }`}
-                    title={isListening ? 'Stop recording' : 'Start voice input'}
+                    title={isListening ? t('stopRecording') : t('startVoiceInput')}
                   >
                     {isListening ? (
                       <MicOff className="h-4 w-4" />
@@ -624,7 +626,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                       type="button"
                       onClick={() => speakText(symptoms)}
                       className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200"
-                      title="Listen to your description"
+                      title={t('listenToDescription')}
                     >
                       <Volume2 className="h-4 w-4" />
                     </button>
@@ -637,18 +639,18 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
             {isVoiceSupported && (
               <div className="flex items-center justify-between">
                 <p className="text-xs sm:text-sm text-gray-500">
-                  Be as detailed as possible. Include when symptoms started, severity, and any factors that make them better or worse.
+                  {t('symptomsDetailsHint')}
                 </p>
                 <div className="flex items-center text-xs sm:text-sm text-gray-500">
                   <Mic className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                  <span>{isListening ? 'Listening...' : 'Voice input available'}</span>
+                  <span>{isListening ? t('listening') : t('voiceInputAvailable')}</span>
                 </div>
               </div>
             )}
             
             {!isVoiceSupported && (
               <p className="text-xs sm:text-sm text-gray-500">
-                Be as detailed as possible. Include when symptoms started, severity, and any factors that make them better or worse.
+                {t('symptomsDetailsHint')}
               </p>
             )}
           </div>
@@ -678,14 +680,14 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
             {isProcessing ? (
               <div className="flex items-center">
                 <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                Processing Assessment...
+                {t('processingAssessment')}
               </div>
             ) : (
-              'Get AI Assessment'
+              t('getAIAssessment')
             )}
           </button>
           <p className="text-xs sm:text-sm text-gray-500 mt-2">
-            Provide symptoms or upload photos to get started
+            {t('provideSymptomsOrPhotos')}
           </p>
         </div>
       </div>

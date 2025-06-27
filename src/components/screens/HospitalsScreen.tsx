@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, MapPin, Phone, Clock, Star, Search, Brain, Shield, Bed, Zap, CheckCircle, AlertCircle, Users, Heart, Activity } from 'lucide-react';
+import { useTranslation } from '../../utils/translations';
 
 interface HospitalsScreenProps {
   updateState: (updates: any) => void;
@@ -15,6 +16,7 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
   const [bedAvailability, setBedAvailability] = useState<{[key: number]: any}>({});
   const [showSymptomPrompt, setShowSymptomPrompt] = useState(false);
   const [symptomInput, setSymptomInput] = useState('');
+  const { t } = useTranslation();
 
   const bangladeshHospitals = [
     {
@@ -405,10 +407,10 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
       <div className="text-center mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">
           <Brain className="inline h-6 w-6 sm:h-8 sm:w-8 mr-3 text-purple-600" />
-          Smart Hospital Matching
+          {t('smartHospitalMatching')}
         </h1>
         <p className="text-base sm:text-lg text-gray-600 px-4">
-          AI-powered hospital recommendations based on your symptoms, insurance, and real-time bed availability
+          {t('aiPoweredRecommendations')}
         </p>
       </div>
 
@@ -505,10 +507,10 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
             className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             <Brain className="inline h-5 w-5 sm:h-6 sm:w-6 mr-2" />
-            Get AI Hospital Recommendations
+            {t('getAiRecommendations')}
           </button>
           <p className="text-gray-600 text-sm mt-2">
-            Let AI analyze your symptoms and find the best hospital matches
+            {t('aiAnalyzeSymptoms')}
           </p>
           {showSymptomPrompt && (
             <form onSubmit={handleSymptomSubmit} className="mt-4 mx-auto max-w-md bg-white rounded-xl shadow-lg border border-purple-200 p-6 text-left">
