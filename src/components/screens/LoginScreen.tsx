@@ -20,6 +20,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for existing session on mount
@@ -88,6 +89,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
     e.preventDefault();
     setIsLoading(true);
     setAuthError(null);
+    setAuthMessage(null);
     try {
       if (isSignUp) {
         if (formData.password !== formData.confirmPassword) {
@@ -112,7 +114,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
           setIsLoading(false);
           return;
         } else {
-          setAuthError('Sign up successful! Please check your email to confirm your account.');
+          setAuthMessage('Sign up successful! Please check your email to confirm your account.');
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -138,6 +140,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
       [e.target.name]: e.target.value
     }));
     setAuthError(null);
+    setAuthMessage(null);
   };
 
   if (loading) {
@@ -424,6 +427,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
               </div>
             )}
 
+            {authMessage && (
+              <div className="text-green-700 bg-green-50 border border-green-200 rounded p-2 text-sm font-medium">
+                {authMessage}
+              </div>
+            )}
             {authError && (
               <div className="text-red-600 bg-red-50 border border-red-200 rounded p-2 text-sm font-medium">
                 {authError}
