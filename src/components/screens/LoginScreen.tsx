@@ -19,6 +19,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for existing session on mount
@@ -86,20 +87,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setAuthError(null);
     try {
       if (isSignUp) {
-        // Basic validation
         if (formData.password !== formData.confirmPassword) {
-          alert('Passwords do not match');
+          setAuthError('Passwords do not match');
           setIsLoading(false);
           return;
         }
         if (formData.password.length < 6) {
-          alert('Password must be at least 6 characters');
+          setAuthError('Password must be at least 6 characters');
           setIsLoading(false);
           return;
         }
-        // Supabase sign up
         const { error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -108,27 +108,25 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
           }
         });
         if (error) {
-          alert('Sign up failed: ' + error.message);
+          setAuthError('Sign up failed: ' + error.message);
           setIsLoading(false);
           return;
         } else {
-          alert('Sign up successful! Please check your email to confirm your account.');
+          setAuthError('Sign up successful! Please check your email to confirm your account.');
         }
       } else {
-        // Supabase sign in
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password
         });
         if (error) {
-          alert('Sign in failed: ' + error.message);
+          setAuthError('Sign in failed: ' + error.message);
           setIsLoading(false);
           return;
         }
       }
-      // On success, auth state listener will handle navigation
     } catch (err) {
-      alert('Authentication error: ' + (err as Error).message);
+      setAuthError('Authentication error: ' + (err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -139,6 +137,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+    setAuthError(null);
   };
 
   if (loading) {
@@ -422,6 +421,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
                     required={isSignUp}
                   />
                 </div>
+              </div>
+            )}
+
+            {authError && (
+              <div className="text-red-600 bg-red-50 border border-red-200 rounded p-2 text-sm font-medium">
+                {authError}
               </div>
             )}
 
