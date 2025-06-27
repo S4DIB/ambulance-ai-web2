@@ -31,35 +31,48 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
       name: "Dhaka Medical College Hospital",
       availableBeds: 45,
       costLevel: "Low",
-      address: "Ramna, Dhaka-1000, Bangladesh"
+      address: "Ramna, Dhaka-1000, Bangladesh",
+      fare: 1200
     },
     {
       id: 2,
       name: "Square Hospital Limited",
       availableBeds: 23,
       costLevel: "High",
-      address: "18/F, Bir Uttam Qazi Nuruzzaman Sarak, West Panthapath, Dhaka-1205"
+      address: "18/F, Bir Uttam Qazi Nuruzzaman Sarak, West Panthapath, Dhaka-1205",
+      fare: 1800
     },
     {
       id: 3,
       name: "Bangabandhu Sheikh Mujib Medical University",
       availableBeds: 8,
       costLevel: "Medium",
-      address: "Shahbag, Dhaka-1000, Bangladesh"
+      address: "Shahbag, Dhaka-1000, Bangladesh",
+      fare: 1500
     },
     {
       id: 4,
       name: "United Hospital Limited",
       availableBeds: 18,
       costLevel: "High",
-      address: "Plot 15, Road 71, Gulshan-2, Dhaka-1212"
+      address: "Plot 15, Road 71, Gulshan-2, Dhaka-1212",
+      fare: 2000
     },
     {
       id: 5,
       name: "Apollo Hospitals Dhaka",
       availableBeds: 31,
       costLevel: "Premium",
-      address: "Plot 81, Block E, Bashundhara R/A, Dhaka-1229"
+      address: "Plot 81, Block E, Bashundhara R/A, Dhaka-1229",
+      fare: 2200
+    },
+    {
+      id: 6,
+      name: "Ibn Sina Hospital",
+      availableBeds: 15,
+      costLevel: "Medium",
+      address: "House 48, Road 9/A, Dhanmondi, Dhaka-1209",
+      fare: 1400
     }
   ];
 
@@ -140,13 +153,6 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
     }
     return () => clearTimeout(timer);
   }, [showArrivalPopup, popupStep]);
-
-  // Show hospital select after route found
-  useEffect(() => {
-    if (popupStep === 4 && showArrivalPopup === false) {
-      setTimeout(() => setShowHospitalSelect(true), 300); // slight delay for smoothness
-    }
-  }, [popupStep, showArrivalPopup]);
 
   const handleVideoCall = () => {
     updateState({ 
@@ -335,7 +341,11 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
                   <h2 className="text-2xl font-bold mb-2 text-green-700">Route found</h2>
                   <p className="text-gray-600 text-base mb-4">Optimal route calculated.</p>
                   <button
-                    onClick={() => { setShowArrivalPopup(false); setPopupStep(0); }}
+                    onClick={() => {
+                      setShowArrivalPopup(false);
+                      setPopupStep(0);
+                      setTimeout(() => setShowHospitalSelect(true), 200);
+                    }}
                     className="mt-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base"
                   >
                     Proceed
@@ -350,30 +360,38 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
       {/* Hospital Selection Modal */}
       {showHospitalSelect && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full text-center relative animate-fade-in border border-blue-100">
+          <div className="bg-white rounded-2xl shadow-2xl px-4 py-6 sm:px-16 sm:py-12 max-w-6xl w-full text-center relative animate-fade-in border border-blue-100">
             <span className="text-4xl mb-2 block">🏥</span>
             <h2 className="text-2xl font-bold mb-2 text-gray-900">Select a Hospital</h2>
             <p className="text-gray-600 mb-6 text-base">Choose your preferred hospital based on bed availability and cost.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
               {hospitalOptions.map(hospital => (
-                <button
+                <div
                   key={hospital.id}
-                  onClick={() => {
-                    setSelectedHospital(hospital);
-                    setShowHospitalSelect(false);
-                    // Optionally: updateState({ selectedHospital: hospital });
-                  }}
-                  className={`bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-xl p-4 text-left shadow hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 ${selectedHospital?.id === hospital.id ? 'ring-2 ring-blue-500' : ''}`}
+                  className={`bg-white border-2 rounded-2xl min-w-[250px] md:min-w-[300px] p-5 md:p-7 flex flex-col justify-between shadow-sm transition-all duration-200 hover:shadow-xl hover:border-blue-400 ${selectedHospital?.id === hospital.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'}`}
                 >
-                  <div className="flex items-center mb-2">
-                    <span className="text-lg mr-2">{hospital.name}</span>
+                  <div className="mb-3">
+                    <div className="flex items-center mb-2">
+                      <span className="text-base md:text-xl font-bold text-gray-900 mr-2">{hospital.name}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 mb-3">
+                      <span className="flex items-center text-green-600 text-sm md:text-base font-medium"><span className="mr-1">🛏️</span>{hospital.availableBeds} beds</span>
+                      <span className="flex items-center text-purple-600 text-sm md:text-base font-medium"><span className="mr-1">💸</span>{hospital.costLevel}</span>
+                      <span className="flex items-center text-yellow-600 text-sm md:text-base font-medium"><span className="mr-1">🚕</span>{hospital.fare} BDT</span>
+                    </div>
+                    <div className="text-xs md:text-sm text-gray-500 mb-3 flex items-center"><MapPin className="h-3 w-3 mr-1 inline-block text-gray-400" />{hospital.address}</div>
                   </div>
-                  <div className="flex items-center text-sm mb-1">
-                    <span className="mr-2 text-green-600">🛏️ {hospital.availableBeds} beds</span>
-                    <span className="ml-auto text-purple-600">💸 {hospital.costLevel} cost</span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{hospital.address}</div>
-                </button>
+                  <button
+                    onClick={() => {
+                      setSelectedHospital(hospital);
+                      setShowHospitalSelect(false);
+                      // Optionally: updateState({ selectedHospital: hospital });
+                    }}
+                    className="mt-2 w-full bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold py-2 md:py-2.5 shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    Select
+                  </button>
+                </div>
               ))}
             </div>
           </div>
