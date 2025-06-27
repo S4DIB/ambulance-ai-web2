@@ -19,6 +19,49 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
     routesAnalyzed: 0
   });
   const [liveMetrics, setLiveMetrics] = useState(metricsSimulator.getLiveOperationalData());
+  const [showArrivalPopup, setShowArrivalPopup] = useState(false);
+  const [popupStep, setPopupStep] = useState(0); // 0: none, 1: hospital search, 2: hospital found, 3: route search, 4: route found
+  const [showHospitalSelect, setShowHospitalSelect] = useState(false);
+  const [selectedHospital, setSelectedHospital] = useState<any>(null);
+
+  // Hospital data (copied from HospitalsScreen)
+  const hospitalOptions = [
+    {
+      id: 1,
+      name: "Dhaka Medical College Hospital",
+      availableBeds: 45,
+      costLevel: "Low",
+      address: "Ramna, Dhaka-1000, Bangladesh"
+    },
+    {
+      id: 2,
+      name: "Square Hospital Limited",
+      availableBeds: 23,
+      costLevel: "High",
+      address: "18/F, Bir Uttam Qazi Nuruzzaman Sarak, West Panthapath, Dhaka-1205"
+    },
+    {
+      id: 3,
+      name: "Bangabandhu Sheikh Mujib Medical University",
+      availableBeds: 8,
+      costLevel: "Medium",
+      address: "Shahbag, Dhaka-1000, Bangladesh"
+    },
+    {
+      id: 4,
+      name: "United Hospital Limited",
+      availableBeds: 18,
+      costLevel: "High",
+      address: "Plot 15, Road 71, Gulshan-2, Dhaka-1212"
+    },
+    {
+      id: 5,
+      name: "Apollo Hospitals Dhaka",
+      availableBeds: 31,
+      costLevel: "Premium",
+      address: "Plot 81, Block E, Bashundhara R/A, Dhaka-1229"
+    }
+  ];
 
   // Update time every second
   useEffect(() => {
@@ -74,6 +117,36 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
       return () => clearInterval(positionTimer);
     }
   }, [state.bookingStatus, state.ambulancePosition]);
+
+  // Show popup when ambulance arrives
+  useEffect(() => {
+    if (state.bookingStatus === 'arrived') {
+      setShowArrivalPopup(true);
+      setPopupStep(0);
+    }
+  }, [state.bookingStatus]);
+
+  // Handle popup sequence
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showArrivalPopup) {
+      if (popupStep === 1) {
+        timer = setTimeout(() => setPopupStep(2), 2000);
+      } else if (popupStep === 2) {
+        timer = setTimeout(() => setPopupStep(3), 1500);
+      } else if (popupStep === 3) {
+        timer = setTimeout(() => setPopupStep(4), 2000);
+      }
+    }
+    return () => clearTimeout(timer);
+  }, [showArrivalPopup, popupStep]);
+
+  // Show hospital select after route found
+  useEffect(() => {
+    if (popupStep === 4 && showArrivalPopup === false) {
+      setTimeout(() => setShowHospitalSelect(true), 300); // slight delay for smoothness
+    }
+  }, [popupStep, showArrivalPopup]);
 
   const handleVideoCall = () => {
     updateState({ 
@@ -203,6 +276,110 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* Arrival & Sequence Popups */}
+      {showArrivalPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center relative animate-fade-in border border-blue-100">
+            {popupStep === 0 && (
+              <>
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl mb-2">🚑</span>
+                  <h2 className="text-2xl font-bold mb-2 text-gray-900">Initiate hospital search and route optimization process.</h2>
+                  <p className="text-gray-600 mb-4 text-base">Your ambulance has arrived. Let's find the best hospital and route for you.</p>
+                  <button
+                    onClick={() => setPopupStep(1)}
+                    className="mt-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base"
+                  >
+                    Proceed
+                  </button>
+                </div>
+              </>
+            )}
+            {popupStep === 1 && (
+              <>
+                <div className="flex flex-col items-center animate-pulse">
+                  <span className="text-4xl mb-2">🏥</span>
+                  <div className="mb-4">
+                    <span className="inline-block w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></span>
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">Locating the closest hospital</h2>
+                  <p className="text-gray-600 text-base">Based on proximity and real-time bed availability.</p>
+                </div>
+              </>
+            )}
+            {popupStep === 2 && (
+              <>
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl mb-2">✅</span>
+                  <h2 className="text-2xl font-bold mb-2 text-green-700">Hospital found</h2>
+                  <p className="text-gray-600 text-base">A suitable hospital has been identified for your needs.</p>
+                </div>
+              </>
+            )}
+            {popupStep === 3 && (
+              <>
+                <div className="flex flex-col items-center animate-pulse">
+                  <span className="text-4xl mb-2">🗺️</span>
+                  <div className="mb-4">
+                    <span className="inline-block w-10 h-10 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></span>
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">Determining the most efficient route</h2>
+                  <p className="text-gray-600 text-base">Using our intelligent routing system for fastest arrival.</p>
+                </div>
+              </>
+            )}
+            {popupStep === 4 && (
+              <>
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl mb-2">🚦</span>
+                  <h2 className="text-2xl font-bold mb-2 text-green-700">Route found</h2>
+                  <p className="text-gray-600 text-base mb-4">Optimal route calculated.</p>
+                  <button
+                    onClick={() => { setShowArrivalPopup(false); setPopupStep(0); }}
+                    className="mt-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base"
+                  >
+                    Proceed
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Hospital Selection Modal */}
+      {showHospitalSelect && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full text-center relative animate-fade-in border border-blue-100">
+            <span className="text-4xl mb-2 block">🏥</span>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900">Select a Hospital</h2>
+            <p className="text-gray-600 mb-6 text-base">Choose your preferred hospital based on bed availability and cost.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              {hospitalOptions.map(hospital => (
+                <button
+                  key={hospital.id}
+                  onClick={() => {
+                    setSelectedHospital(hospital);
+                    setShowHospitalSelect(false);
+                    // Optionally: updateState({ selectedHospital: hospital });
+                  }}
+                  className={`bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-xl p-4 text-left shadow hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 ${selectedHospital?.id === hospital.id ? 'ring-2 ring-blue-500' : ''}`}
+                >
+                  <div className="flex items-center mb-2">
+                    <span className="text-lg mr-2">{hospital.name}</span>
+                  </div>
+                  <div className="flex items-center text-sm mb-1">
+                    <span className="mr-2 text-green-600">🛏️ {hospital.availableBeds} beds</span>
+                    <span className="ml-auto text-purple-600">💸 {hospital.costLevel} cost</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">{hospital.address}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="text-center mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">
           <MapPin className="inline h-6 w-6 sm:h-8 sm:w-8 mr-3 text-blue-600" />
@@ -274,8 +451,8 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
         {/* Real-time Performance Metrics */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 sm:mb-6">
           <div className="bg-blue-50 p-3 sm:p-4 rounded-lg text-center">
-            <div className="text-lg sm:text-xl font-bold text-blue-600">{liveMetrics.currentSpeed || 45} km/h</div>
-            <div className="text-xs sm:text-sm text-blue-800">Current Speed</div>
+            <div className="text-lg sm:text-xl font-bold text-blue-600">{liveMetrics.ambulancesInTransit}</div>
+            <div className="text-xs sm:text-sm text-blue-800">Ambulances In Transit</div>
           </div>
           <div className="bg-green-50 p-3 sm:p-4 rounded-lg text-center">
             <div className="text-lg sm:text-xl font-bold text-green-600">{liveMetrics.currentTrafficLoad}%</div>
