@@ -10,6 +10,8 @@ interface LoginScreenProps {
 const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -106,7 +108,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
           email: formData.email,
           password: formData.password,
           options: {
-            data: { full_name: formData.fullName }
+            data: { full_name: formData.fullName, phone: formData.phone }
           }
         });
         if (error) {
@@ -129,6 +131,32 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
       }
     } catch (err) {
       setAuthError('Authentication error: ' + (err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsLoading(true);
+    setAuthError(null);
+    setAuthMessage(null);
+    const emailToUse = resetEmail || formData.email;
+    if (!emailToUse) {
+      setAuthError("Please enter your email address to reset your password.");
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(emailToUse);
+      if (error) {
+        setAuthError("Password reset failed: " + error.message);
+      } else {
+        setAuthMessage("Password reset email sent! Please check your inbox.");
+        setShowReset(false);
+      }
+    } catch (err) {
+      setAuthError("Password reset error: " + (err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -304,41 +332,38 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
             </div>
           </div>
 
-          {/* Welcome Text */}
+          {/* App Title Centered */}
           <div className="text-center mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
-              {isSignUp ? 'Create Account' : 'Welcome Back'}
-            </h2>
-            <p className="text-gray-600 text-base sm:text-lg px-2">
-              {isSignUp 
-                ? 'Join Rescufast.ai for emergency medical services' 
-                : 'Sign in to access emergency medical services'
-              }
-            </p>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
+              Rescufast.ai
+            </h1>
           </div>
 
-          {/* Auth Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
-            <button
-              onClick={() => setIsSignUp(false)}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                !isSignUp 
-                  ? 'bg-white text-gray-900 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => setIsSignUp(true)}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                isSignUp 
-                  ? 'bg-white text-gray-900 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Sign Up
-            </button>
+          {/* Welcome Text */}
+          <div className="text-center mb-6 sm:mb-8">
+            {/* Auth Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+              <button
+                onClick={() => setIsSignUp(false)}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                  !isSignUp 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => setIsSignUp(true)}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                  isSignUp 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Sign Up
+              </button>
+            </div>
           </div>
 
           {/* Email/Password Form */}
@@ -357,6 +382,25 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
                     onChange={handleInputChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
                     placeholder="Enter your full name"
+                    required={isSignUp}
+                  />
+                </div>
+              </div>
+            )}
+
+            {isSignUp && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="w-full pl-4 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                    placeholder="Enter your phone number"
                     required={isSignUp}
                   />
                 </div>
@@ -438,6 +482,35 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
               </div>
             )}
 
+            {showReset && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Enter your email to reset password</label>
+                <input
+                  type="email"
+                  className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  value={resetEmail || formData.email}
+                  onChange={e => setResetEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                />
+                <button
+                  type="button"
+                  className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-3 px-4 rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all"
+                  onClick={handlePasswordReset}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Sending..." : "Send Password Reset Email"}
+                </button>
+                <button
+                  type="button"
+                  className="w-full mt-2 text-gray-500 hover:text-gray-700 text-sm"
+                  onClick={() => setShowReset(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}
@@ -491,9 +564,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
           </div>
 
           {/* Forgot Password Link (only for sign in) */}
-          {!isSignUp && (
+          {!isSignUp && !showReset && (
             <div className="text-center mt-4">
-              <button className="text-sm text-red-600 hover:text-red-700 font-medium">
+              <button
+                type="button"
+                className="text-sm text-red-600 hover:text-red-700 font-medium"
+                onClick={() => setShowReset(true)}
+              >
                 Forgot your password?
               </button>
             </div>
