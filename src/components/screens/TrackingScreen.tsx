@@ -360,7 +360,7 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
       {/* Hospital Selection Modal */}
       {showHospitalSelect && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-2xl px-4 py-6 sm:px-16 sm:py-12 max-w-6xl w-full text-center relative animate-fade-in border border-blue-100">
+          <div className="bg-white rounded-2xl shadow-2xl px-4 py-6 sm:px-16 sm:py-12 max-w-6xl w-full text-center relative animate-fade-in border border-blue-100 max-h-[90vh] overflow-y-auto">
             <span className="text-4xl mb-2 block">🏥</span>
             <h2 className="text-2xl font-bold mb-2 text-gray-900">Select a Hospital</h2>
             <p className="text-gray-600 mb-6 text-base">Choose your preferred hospital based on bed availability and cost.</p>
