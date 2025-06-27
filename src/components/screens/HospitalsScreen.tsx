@@ -13,6 +13,8 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
   const [isAIMatching, setIsAIMatching] = useState(false);
   const [smartMatches, setSmartMatches] = useState<any[]>([]);
   const [bedAvailability, setBedAvailability] = useState<{[key: number]: any}>({});
+  const [showSymptomPrompt, setShowSymptomPrompt] = useState(false);
+  const [symptomInput, setSymptomInput] = useState('');
 
   const bangladeshHospitals = [
     {
@@ -378,6 +380,26 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
     });
   };
 
+  // Modified AI Matching Trigger
+  const handleAIMatchClick = () => {
+    if (!state.symptoms) {
+      setShowSymptomPrompt(true);
+    } else {
+      performAIMatching();
+    }
+  };
+
+  const handleSymptomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (symptomInput.trim()) {
+      updateState({ symptoms: symptomInput });
+      setShowSymptomPrompt(false);
+      setTimeout(() => {
+        performAIMatching();
+      }, 100); // Ensure state is updated before matching
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <div className="text-center mb-6 sm:mb-8">
@@ -398,11 +420,11 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
             <h2 className="text-xl sm:text-2xl font-bold">AI is Analyzing Your Needs</h2>
           </div>
           <div className="text-center space-y-2 text-purple-100">
-            <p>🧠 Processing your symptoms and medical history</p>
-            <p>🏥 Matching with hospital specialties and capabilities</p>
-            <p>💳 Checking insurance coverage and costs</p>
-            <p>🛏️ Analyzing real-time bed availability</p>
-            <p>📍 Calculating optimal distance and wait times</p>
+            <p>Processing your symptoms and medical history</p>
+            <p>Matching with hospital specialties and capabilities</p>
+            <p>Checking insurance coverage and costs</p>
+            <p>Analyzing real-time bed availability</p>
+            <p>Calculating optimal distance and wait times</p>
           </div>
         </div>
       )}
@@ -479,7 +501,7 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
       {smartMatches.length === 0 && !isAIMatching && (
         <div className="mb-6 sm:mb-8 text-center">
           <button
-            onClick={performAIMatching}
+            onClick={handleAIMatchClick}
             className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             <Brain className="inline h-5 w-5 sm:h-6 sm:w-6 mr-2" />
@@ -488,6 +510,34 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
           <p className="text-gray-600 text-sm mt-2">
             Let AI analyze your symptoms and find the best hospital matches
           </p>
+          {showSymptomPrompt && (
+            <form onSubmit={handleSymptomSubmit} className="mt-4 mx-auto max-w-md bg-white rounded-xl shadow-lg border border-purple-200 p-6 text-left">
+              <h3 className="text-lg font-semibold text-purple-800 mb-2">Enter your symptoms or condition</h3>
+              <input
+                type="text"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent mb-3"
+                placeholder="e.g. chest pain, fever, accident, etc."
+                value={symptomInput}
+                onChange={e => setSymptomInput(e.target.value)}
+                required
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  onClick={() => setShowSymptomPrompt(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold hover:from-purple-700 hover:to-blue-700"
+                >
+                  Continue
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       )}
 

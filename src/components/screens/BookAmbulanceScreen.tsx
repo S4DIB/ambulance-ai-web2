@@ -61,69 +61,7 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
     }
 
     // Simulate distance calculation based on location names
-    const distance = calculateDistance(data.pickupLocation, data.destinationLocation);
-    const baseRate = 2500; // Base rate for first 10km
-    const additionalRate = 150; // Per km after 10km
-    
-    let additionalCost = 0;
-    if (distance > 10) {
-      additionalCost = (distance - 10) * additionalRate;
-    }
-
-    // Special requirements cost
-    let specialRequirementsCost = 0;
-    const breakdown: string[] = [`Base rate (${Math.min(distance, 10).toFixed(1)} km): ৳${baseRate}`];
-    
-    if (distance > 10) {
-      breakdown.push(`Additional distance (${(distance - 10).toFixed(1)} km): ৳${additionalCost}`);
-    }
-
-    if (data.wheelchairAccess) {
-      specialRequirementsCost += 500;
-      breakdown.push('Wheelchair accessible vehicle: ৳500');
-    }
-    if (data.oxygenRequired) {
-      specialRequirementsCost += 800;
-      breakdown.push('Oxygen support: ৳800');
-    }
-    if (data.stretcherRequired) {
-      specialRequirementsCost += 300;
-      breakdown.push('Stretcher transport: ৳300');
-    }
-
-    // Time-based pricing (peak hours)
-    const scheduledTime = data.scheduledTime;
-    let timeSurcharge = 0;
-    if (scheduledTime) {
-      const hour = parseInt(scheduledTime.split(':')[0]);
-      if ((hour >= 7 && hour <= 10) || (hour >= 17 && hour <= 20)) {
-        timeSurcharge = Math.floor((baseRate + additionalCost) * 0.15); // 15% surcharge
-        breakdown.push('Peak hours surcharge (15%): ৳' + timeSurcharge);
-      }
-    }
-
-    const total = baseRate + additionalCost + specialRequirementsCost + timeSurcharge;
-
-    setCalculatedPrice({
-      distance,
-      baseRate,
-      additionalCost,
-      specialRequirementsCost,
-      total,
-      breakdown
-    });
-
-    analytics.track('price_calculated', {
-      distance,
-      total,
-      specialRequirements: specialRequirementsCost > 0,
-      peakHours: timeSurcharge > 0
-    });
-  };
-
-  const calculateDistance = (pickup: string, destination: string): number => {
-    // Simulate realistic distance calculation based on common Dhaka locations
-    const locations = {
+    const locations: { [key: string]: { lat: number; lng: number } } = {
       'dhanmondi': { lat: 23.7461, lng: 90.3742 },
       'gulshan': { lat: 23.7925, lng: 90.4078 },
       'uttara': { lat: 23.8759, lng: 90.3795 },
@@ -138,10 +76,10 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
 
     // Extract location keywords and estimate distance
     const pickupKey = Object.keys(locations).find(key => 
-      pickup.toLowerCase().includes(key) || pickup.toLowerCase().includes(key.replace(' ', ''))
+      data.pickupLocation.toLowerCase().includes(key) || data.pickupLocation.toLowerCase().includes(key.replace(' ', ''))
     );
     const destKey = Object.keys(locations).find(key => 
-      destination.toLowerCase().includes(key) || destination.toLowerCase().includes(key.replace(' ', ''))
+      data.destinationLocation.toLowerCase().includes(key) || data.destinationLocation.toLowerCase().includes(key.replace(' ', ''))
     );
 
     if (pickupKey && destKey && locations[pickupKey] && locations[destKey]) {
@@ -163,7 +101,7 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
     }
 
     // Default distance estimation based on string similarity and common patterns
-    if (pickup.toLowerCase().includes('airport') || destination.toLowerCase().includes('airport')) {
+    if (data.pickupLocation.toLowerCase().includes('airport') || data.destinationLocation.toLowerCase().includes('airport')) {
       return 25 + Math.random() * 10; // Airport is usually far
     }
     
@@ -330,7 +268,7 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
         
         analytics.track('scheduled_booking_submitted', requestData);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit booking:', error);
       analytics.track('booking_submission_error', { 
         error: error.message,
@@ -509,7 +447,6 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
 
       <div className="text-center mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">
-          <Truck className="inline h-6 w-6 sm:h-8 sm:w-8 mr-3 text-red-600" />
           {t('bookAmbulance')}
         </h1>
         <p className="text-base sm:text-lg text-gray-600 px-4">{t('emergencyOrScheduled')}</p>
