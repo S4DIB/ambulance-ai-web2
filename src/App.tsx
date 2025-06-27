@@ -1,0 +1,153 @@
+import React from 'react';
+import Navigation from './components/Navigation';
+import HomeScreen from './components/screens/HomeScreen';
+import BookAmbulanceScreen from './components/screens/BookAmbulanceScreen';
+import AIAssessmentScreen from './components/screens/AIAssessmentScreen';
+import HospitalsScreen from './components/screens/HospitalsScreen';
+import TrackingScreen from './components/screens/TrackingScreen';
+import HistoryScreen from './components/screens/HistoryScreen';
+import { EmergencyErrorBoundary } from './utils/errorBoundary';
+import { analytics } from './utils/analytics';
+import { offlineStorage } from './utils/offlineStorage';
+import { registerServiceWorker, PerformanceMonitor } from './utils/performanceOptimizer';
+
+// Initialize Bolt state
+if (typeof window !== 'undefined' && !window.state) {
+  window.state = {
+    // Current screen/page
+    currentPage: "home",
+    
+    // User authentication
+    isLoggedIn: false,
+    
+    // Language preference
+    language: "en",
+    
+    // Booking data
+    bookingStatus: "none", // none, requested, dispatched, enroute, arrived
+    pickupLocation: "",
+    symptoms: "",
+    triageLevel: null, // 1 to 5
+    urgencyScore: null, // 0 to 100
+    matchedHospitals: [], // array of hospital objects
+    
+    // Ambulance tracking
+    ambulancePosition: 0, // 0 to 100 (% along route)
+    etaMinutes: 5,
+    
+    // Additional state for better UX
+    patientName: "",
+    contactNumber: "",
+    emergencyType: "",
+    assessmentResponses: [],
+    bookingHistory: [],
+    assessmentHistory: [],
+    
+    // Video call state
+    isVideoCallActive: false,
+    videoCallType: 'emergency' // 'emergency' | 'consultation'
+  };
+
+  // Initialize offline storage and analytics
+  offlineStorage.init().catch(console.error);
+  registerServiceWorker();
+  PerformanceMonitor.measurePageLoad();
+  
+  // Track app initialization
+  analytics.track('app_initialized', {
+    userAgent: navigator.userAgent,
+    language: navigator.language,
+    online: navigator.onLine
+  });
+}
+
+function App() {
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+  
+  React.useEffect(() => {
+    const handleStateChange = () => forceUpdate();
+    window.addEventListener('statechange', handleStateChange);
+    return () => window.removeEventListener('statechange', handleStateChange);
+  }, []);
+
+  const updateState = async (updates: any) => {
+    const oldState = { ...window.state };
+    Object.assign(window.state, updates);
+    
+    // Save critical state changes offline
+    if (updates.bookingStatus || updates.triageLevel || updates.urgencyScore) {
+      try {
+        await offlineStorage.saveEmergencyRequest({
+          ...updates,
+          timestamp: Date.now(),
+          previousState: oldState
+        });
+      } catch (error) {
+        console.error('Failed to save state offline:', error);
+      }
+    }
+    
+    // Track important state changes
+    if (updates.currentPage) {
+      analytics.trackUserJourney(`page_${updates.currentPage}`, updates);
+    }
+    
+    if (updates.bookingStatus) {
+      analytics.track('booking_status_change', {
+        from: oldState.bookingStatus,
+        to: updates.bookingStatus,
+        ...updates
+      });
+    }
+    
+    window.dispatchEvent(new Event('statechange'));
+  };
+
+  const renderScreen = () => {
+    try {
+      switch (window.state.currentPage) {
+        case 'home':
+          return <HomeScreen updateState={updateState} />;
+        case 'book':
+          return <BookAmbulanceScreen updateState={updateState} />;
+        case 'assessment':
+          return <AIAssessmentScreen updateState={updateState} />;
+        case 'hospitals':
+          return <HospitalsScreen updateState={updateState} />;
+        case 'tracking':
+          return <TrackingScreen updateState={updateState} />;
+        case 'history':
+          return <HistoryScreen updateState={updateState} />;
+        default:
+          return <HomeScreen updateState={updateState} />;
+      }
+    } catch (error) {
+      // Log error and show fallback
+      analytics.track('screen_render_error', {
+        screen: window.state.currentPage,
+        error: error.message
+      });
+      throw error; // Let ErrorBoundary handle it
+    }
+  };
+
+  return (
+    <EmergencyErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        {window.state.isLoggedIn && (
+          <Navigation 
+            activeScreen={window.state.currentPage} 
+            onScreenChange={(screen: string) => updateState({ currentPage: screen })}
+            bookingStatus={window.state.bookingStatus}
+            updateState={updateState}
+          />
+        )}
+        <main>
+          {renderScreen()}
+        </main>
+      </div>
+    </EmergencyErrorBoundary>
+  );
+}
+
+export default App;
