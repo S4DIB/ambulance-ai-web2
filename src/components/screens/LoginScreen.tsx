@@ -83,39 +83,55 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
     }, 1000);
   };
 
-  const handleEmailAuth = (e: React.FormEvent) => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Basic validation
-    if (isSignUp) {
-      if (formData.password !== formData.confirmPassword) {
-        alert('Passwords do not match');
-        setIsLoading(false);
-        return;
-      }
-      if (formData.password.length < 6) {
-        alert('Password must be at least 6 characters');
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    // Simulate authentication
-    setTimeout(() => {
-      updateState({ 
-        isLoggedIn: true,
-        currentPage: 'home',
-        currentUser: {
-          email: formData.email,
-          user_metadata: {
-            full_name: formData.fullName || formData.email.split('@')[0]
-          },
-          isGuest: false
+    try {
+      if (isSignUp) {
+        // Basic validation
+        if (formData.password !== formData.confirmPassword) {
+          alert('Passwords do not match');
+          setIsLoading(false);
+          return;
         }
-      });
+        if (formData.password.length < 6) {
+          alert('Password must be at least 6 characters');
+          setIsLoading(false);
+          return;
+        }
+        // Supabase sign up
+        const { error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: { full_name: formData.fullName }
+          }
+        });
+        if (error) {
+          alert('Sign up failed: ' + error.message);
+          setIsLoading(false);
+          return;
+        } else {
+          alert('Sign up successful! Please check your email to confirm your account.');
+        }
+      } else {
+        // Supabase sign in
+        const { error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password
+        });
+        if (error) {
+          alert('Sign in failed: ' + error.message);
+          setIsLoading(false);
+          return;
+        }
+      }
+      // On success, auth state listener will handle navigation
+    } catch (err) {
+      alert('Authentication error: ' + (err as Error).message);
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
