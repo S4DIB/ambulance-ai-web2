@@ -18,6 +18,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
     phone: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check for existing session on mount
@@ -30,6 +31,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
           currentUser: session.user
         });
       }
+      setLoading(false);
     };
     checkSession();
 
@@ -122,6 +124,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
       [e.target.name]: e.target.value
     }));
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin h-10 w-10 border-4 border-red-600 border-t-transparent rounded-full mb-4"></div>
+          <span className="text-gray-700 text-lg font-medium">Checking authentication...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex relative">
