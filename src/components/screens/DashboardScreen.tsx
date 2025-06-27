@@ -56,11 +56,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ updateState }) => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <div className="text-center mb-8 sm:mb-12">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
-          {t('welcomeBack')} {currentUser?.user_metadata?.full_name || currentUser?.email}
+          Welcome {currentUser?.user_metadata?.full_name || currentUser?.email},
         </h1>
-        <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto px-4">
-          {t('welcomeMessage')}
-        </p>
       </div>
 
       {/* Live Metrics Dashboard */}
@@ -101,6 +98,28 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ updateState }) => {
           )}
         </div>
       )}
+
+      {/* Need Emergency Medical Help? */}
+      <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl p-6 sm:p-8 text-white text-center mb-8 sm:mb-12">
+        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{t('needEmergencyHelp')}</h2>
+        <p className="text-red-100 mb-4 sm:mb-6 text-sm sm:text-base">
+          {t('needEmergencyHelpDesc')}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-center">
+          <button 
+            onClick={() => updateState({ currentPage: 'book' })}
+            className="bg-white text-red-600 px-4 sm:px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-sm sm:text-base"
+          >
+            {t('bookAmbulance')}
+          </button>
+          <button 
+            onClick={() => updateState({ currentPage: 'assessment' })}
+            className="border-2 border-white text-white px-4 sm:px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-red-600 transition-colors duration-200 text-sm sm:text-base"
+          >
+            {t('aiAssessment')}
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-8 sm:mb-12">
         <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100">
@@ -143,28 +162,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ updateState }) => {
               <span className="text-green-600 font-bold">94.7%</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Need Emergency Medical Help? */}
-      <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl p-6 sm:p-8 text-white text-center mb-8 sm:mb-12">
-        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{t('needEmergencyHelp')}</h2>
-        <p className="text-red-100 mb-4 sm:mb-6 text-sm sm:text-base">
-          {t('needEmergencyHelpDesc')}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-center">
-          <button 
-            onClick={() => updateState({ currentPage: 'book' })}
-            className="bg-white text-red-600 px-4 sm:px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-sm sm:text-base"
-          >
-            {t('bookAmbulance')}
-          </button>
-          <button 
-            onClick={() => updateState({ currentPage: 'assessment' })}
-            className="border-2 border-white text-white px-4 sm:px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-red-600 transition-colors duration-200 text-sm sm:text-base"
-          >
-            {t('aiAssessment')}
-          </button>
         </div>
       </div>
 
