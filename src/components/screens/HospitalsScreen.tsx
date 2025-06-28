@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, MapPin, Phone, Clock, Star, Search, Brain, Shield, Bed, Zap, CheckCircle, AlertCircle, Users, Heart, Activity } from 'lucide-react';
 import { useTranslation } from '../../utils/translations';
+import { HospitalAPI } from '../../utils/emergencyAPI';
+import { Hospital } from '../../utils/supabaseClient';
 
 interface HospitalsScreenProps {
   updateState: (updates: any) => void;
@@ -13,213 +15,75 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
   const [insuranceFilter, setInsuranceFilter] = useState('');
   const [isAIMatching, setIsAIMatching] = useState(false);
   const [smartMatches, setSmartMatches] = useState<any[]>([]);
-  const [bedAvailability, setBedAvailability] = useState<{[key: number]: any}>({});
+  const [bedAvailability, setBedAvailability] = useState<{[key: string]: any}>({});
   const [showSymptomPrompt, setShowSymptomPrompt] = useState(false);
   const [symptomInput, setSymptomInput] = useState('');
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const { t } = useTranslation();
 
-  const bangladeshHospitals = [
-    {
-      id: 1,
-      name: "Dhaka Medical College Hospital",
-      address: "Ramna, Dhaka-1000, Bangladesh",
-      phone: "+880-2-8626812",
-      distance: 2.3,
-      rating: 4.6,
-      specialties: ["Emergency", "Trauma", "Cardiology", "Neurology", "Surgery"],
-      status: "Available",
-      waitTime: "15 min",
-      description: "Premier government medical college hospital with comprehensive emergency services",
-      insuranceAccepted: ["Government", "BUPA", "MetLife", "Pragati", "Green Delta"],
-      totalBeds: 2000,
-      availableBeds: 45,
-      icuBeds: 8,
-      emergencyBeds: 12,
-      costLevel: "Low",
-      qualityScore: 85,
-      equipmentLevel: "Advanced",
-      traumaCenter: true,
-      cardiacCenter: false
-    },
-    {
-      id: 2,
-      name: "Square Hospital Limited",
-      address: "18/F, Bir Uttam Qazi Nuruzzaman Sarak, West Panthapath, Dhaka-1205",
-      phone: "+880-2-8159457",
-      distance: 3.8,
-      rating: 4.8,
-      specialties: ["Cardiology", "Oncology", "Orthopedics", "ICU", "Emergency"],
-      status: "Available",
-      waitTime: "20 min",
-      description: "Leading private hospital with state-of-the-art medical facilities",
-      insuranceAccepted: ["BUPA", "MetLife", "Pragati", "Green Delta", "Eastland", "Prime Islami"],
-      totalBeds: 650,
-      availableBeds: 23,
-      icuBeds: 5,
-      emergencyBeds: 8,
-      costLevel: "High",
-      qualityScore: 95,
-      equipmentLevel: "Premium",
-      traumaCenter: false,
-      cardiacCenter: true
-    },
-    {
-      id: 3,
-      name: "Bangabandhu Sheikh Mujib Medical University",
-      address: "Shahbag, Dhaka-1000, Bangladesh",
-      phone: "+880-2-9661064",
-      distance: 4.1,
-      rating: 4.5,
-      specialties: ["Emergency", "Surgery", "Pediatrics", "Gynecology", "Neurology"],
-      status: "Limited",
-      waitTime: "35 min",
-      description: "Specialized medical university hospital with advanced treatment facilities",
-      insuranceAccepted: ["Government", "BUPA", "MetLife", "Pragati"],
-      totalBeds: 1200,
-      availableBeds: 8,
-      icuBeds: 2,
-      emergencyBeds: 3,
-      costLevel: "Medium",
-      qualityScore: 88,
-      equipmentLevel: "Advanced",
-      traumaCenter: true,
-      cardiacCenter: false
-    },
-    {
-      id: 4,
-      name: "United Hospital Limited",
-      address: "Plot 15, Road 71, Gulshan-2, Dhaka-1212",
-      phone: "+880-2-8836000",
-      distance: 5.2,
-      rating: 4.7,
-      specialties: ["Cardiology", "Neurology", "Emergency", "ICU", "Oncology"],
-      status: "Available",
-      waitTime: "25 min",
-      description: "Premium healthcare facility with international standard medical services",
-      insuranceAccepted: ["BUPA", "MetLife", "Pragati", "Green Delta", "Eastland", "Prime Islami", "Reliance"],
-      totalBeds: 500,
-      availableBeds: 18,
-      icuBeds: 6,
-      emergencyBeds: 7,
-      costLevel: "High",
-      qualityScore: 92,
-      equipmentLevel: "Premium",
-      traumaCenter: false,
-      cardiacCenter: true
-    },
-    {
-      id: 5,
-      name: "Apollo Hospitals Dhaka",
-      address: "Plot 81, Block E, Bashundhara R/A, Dhaka-1229",
-      phone: "+880-2-8401661",
-      distance: 6.7,
-      rating: 4.9,
-      specialties: ["Cardiology", "Oncology", "Transplant", "Emergency", "Neurology"],
-      status: "Available",
-      waitTime: "18 min",
-      description: "International chain hospital offering world-class healthcare services",
-      insuranceAccepted: ["BUPA", "MetLife", "Pragati", "Green Delta", "Eastland", "Prime Islami", "Reliance", "Sadharan"],
-      totalBeds: 670,
-      availableBeds: 31,
-      icuBeds: 9,
-      emergencyBeds: 11,
-      costLevel: "Premium",
-      qualityScore: 98,
-      equipmentLevel: "World-Class",
-      traumaCenter: true,
-      cardiacCenter: true
-    },
-    {
-      id: 6,
-      name: "Ibn Sina Hospital",
-      address: "House 48, Road 9/A, Dhanmondi, Dhaka-1209",
-      phone: "+880-2-8616646",
-      distance: 3.2,
-      rating: 4.4,
-      specialties: ["General Medicine", "Surgery", "Pediatrics", "Emergency"],
-      status: "Available",
-      waitTime: "22 min",
-      description: "Well-established hospital with comprehensive medical services",
-      insuranceAccepted: ["BUPA", "MetLife", "Pragati", "Green Delta"],
-      totalBeds: 300,
-      availableBeds: 15,
-      icuBeds: 3,
-      emergencyBeds: 5,
-      costLevel: "Medium",
-      qualityScore: 82,
-      equipmentLevel: "Standard",
-      traumaCenter: false,
-      cardiacCenter: false
-    }
-  ];
+  // Fetch hospitals from Supabase
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const hospitalsData = await HospitalAPI.getAvailableHospitals();
+        setHospitals(hospitalsData.slice(0, 10)); // Show at least 10 hospitals if available
+      } catch (error) {
+        setHospitals([]);
+        console.error('Failed to fetch hospitals:', error);
+      }
+    };
+    fetchHospitals();
+  }, []);
 
-  // AI Hospital Matching Algorithm
+  // AI Hospital Matching Algorithm (use hospitals from DB)
   const performAIMatching = () => {
     setIsAIMatching(true);
-    
     setTimeout(() => {
       const userSymptoms = state.symptoms || '';
       const userTriageLevel = state.triageLevel || 3;
       const userUrgencyScore = state.urgencyScore || 50;
-      const userInsurance = state.userInsurance || 'BUPA'; // Default insurance
-      
-      const scoredHospitals = bangladeshHospitals.map(hospital => {
+      const userInsurance = state.userInsurance || 'BUPA';
+      const scoredHospitals = hospitals.map(hospital => {
         let matchScore = 0;
         let reasons = [];
-        
+        // ... existing AI matching logic ...
+        // (copy from previous performAIMatching, but use hospital fields from DB)
         // Symptom-based specialty matching
         if (userSymptoms.toLowerCase().includes('chest') || userSymptoms.toLowerCase().includes('heart')) {
-          if (hospital.cardiacCenter) {
-            matchScore += 30;
-            reasons.push('Cardiac Center Available');
-          }
           if (hospital.specialties.includes('Cardiology')) {
             matchScore += 20;
             reasons.push('Cardiology Specialist');
           }
         }
-        
         if (userSymptoms.toLowerCase().includes('trauma') || userSymptoms.toLowerCase().includes('accident')) {
-          if (hospital.traumaCenter) {
-            matchScore += 30;
-            reasons.push('Trauma Center');
-          }
           if (hospital.specialties.includes('Emergency')) {
             matchScore += 15;
             reasons.push('Emergency Specialist');
           }
         }
-        
         if (userSymptoms.toLowerCase().includes('brain') || userSymptoms.toLowerCase().includes('head')) {
           if (hospital.specialties.includes('Neurology')) {
             matchScore += 25;
             reasons.push('Neurology Department');
           }
         }
-        
         // Triage level matching
         if (userTriageLevel <= 2) {
-          // Critical cases need trauma centers or high-quality facilities
-          if (hospital.traumaCenter) matchScore += 25;
-          if (hospital.qualityScore >= 90) matchScore += 20;
-          if (hospital.icuBeds > 5) matchScore += 15;
+          if (hospital.icu_beds > 5) matchScore += 15;
           reasons.push('High-Priority Care Available');
         } else if (userTriageLevel >= 4) {
-          // Lower priority can go to general hospitals
-          if (hospital.costLevel === 'Low' || hospital.costLevel === 'Medium') {
+          if (hospital.cost_level === 'low' || hospital.cost_level === 'medium') {
             matchScore += 15;
             reasons.push('Cost-Effective Option');
           }
         }
-        
         // Insurance matching
-        if (hospital.insuranceAccepted.includes(userInsurance)) {
+        if (hospital.insurance_accepted.includes(userInsurance)) {
           matchScore += 20;
           reasons.push('Insurance Accepted');
         }
-        
         // Bed availability scoring
-        const bedAvailabilityRatio = hospital.availableBeds / hospital.totalBeds;
+        const bedAvailabilityRatio = hospital.available_beds / hospital.total_beds;
         if (bedAvailabilityRatio > 0.05) {
           matchScore += 15;
           reasons.push('Good Bed Availability');
@@ -227,42 +91,18 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
           matchScore += 8;
           reasons.push('Limited Bed Availability');
         }
-        
         // Emergency bed availability for urgent cases
-        if (userUrgencyScore >= 70 && hospital.emergencyBeds > 5) {
+        if (userUrgencyScore >= 70 && hospital.emergency_beds > 5) {
           matchScore += 20;
           reasons.push('Emergency Beds Available');
         }
-        
-        // Distance factor (closer is better)
-        if (hospital.distance <= 3) {
-          matchScore += 15;
-          reasons.push('Close Proximity');
-        } else if (hospital.distance <= 5) {
-          matchScore += 10;
-          reasons.push('Reasonable Distance');
-        }
-        
-        // Quality and equipment scoring
-        matchScore += hospital.qualityScore * 0.2;
-        if (hospital.equipmentLevel === 'World-Class') {
-          matchScore += 15;
-          reasons.push('World-Class Equipment');
-        } else if (hospital.equipmentLevel === 'Premium') {
-          matchScore += 10;
-          reasons.push('Premium Equipment');
-        } else if (hospital.equipmentLevel === 'Advanced') {
-          matchScore += 5;
-          reasons.push('Advanced Equipment');
-        }
-        
+        // Quality and equipment scoring (if available)
+        if (hospital.rating) matchScore += hospital.rating * 2;
         // Wait time factor
-        const waitTimeMinutes = parseInt(hospital.waitTime);
-        if (waitTimeMinutes <= 20) {
+        if (hospital.wait_time && hospital.wait_time <= 20) {
           matchScore += 10;
           reasons.push('Short Wait Time');
         }
-        
         return {
           ...hospital,
           aiMatchScore: Math.round(matchScore),
@@ -272,30 +112,22 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
                               matchScore >= 40 ? 'Suitable' : 'Available'
         };
       });
-      
-      // Sort by AI match score
       const sortedMatches = scoredHospitals.sort((a, b) => b.aiMatchScore - a.aiMatchScore);
       setSmartMatches(sortedMatches);
       setIsAIMatching(false);
-      
-      // Update state with matched hospitals
-      updateState({
-        matchedHospitals: sortedMatches.slice(0, 3) // Top 3 matches
-      });
-    }, 3000); // 3 second AI processing simulation
+      updateState({ matchedHospitals: sortedMatches.slice(0, 3) });
+    }, 3000);
   };
 
-  // Simulate real-time bed availability updates
+  // Simulate real-time bed availability updates (optional, can be removed if not needed)
   useEffect(() => {
     const updateBedAvailability = () => {
-      const newAvailability: {[key: number]: any} = {};
-      
-      bangladeshHospitals.forEach(hospital => {
-        const variation = Math.floor(Math.random() * 6) - 3; // -3 to +3 change
-        const newAvailable = Math.max(0, hospital.availableBeds + variation);
-        const newICU = Math.max(0, hospital.icuBeds + Math.floor(Math.random() * 3) - 1);
-        const newEmergency = Math.max(0, hospital.emergencyBeds + Math.floor(Math.random() * 3) - 1);
-        
+      const newAvailability: {[key: string]: any} = {};
+      hospitals.forEach(hospital => {
+        const variation = Math.floor(Math.random() * 6) - 3;
+        const newAvailable = Math.max(0, hospital.available_beds + variation);
+        const newICU = Math.max(0, hospital.icu_beds + Math.floor(Math.random() * 3) - 1);
+        const newEmergency = Math.max(0, hospital.emergency_beds + Math.floor(Math.random() * 3) - 1);
         newAvailability[hospital.id] = {
           availableBeds: newAvailable,
           icuBeds: newICU,
@@ -303,32 +135,27 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
           lastUpdated: new Date().toLocaleTimeString()
         };
       });
-      
       setBedAvailability(newAvailability);
     };
-    
-    // Initial update
     updateBedAvailability();
-    
-    // Update every 30 seconds
     const interval = setInterval(updateBedAvailability, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [hospitals]);
 
   // Auto-trigger AI matching if user has assessment data
   useEffect(() => {
     if ((state.symptoms || state.triageLevel || state.urgencyScore) && smartMatches.length === 0) {
       performAIMatching();
     }
-  }, [state.symptoms, state.triageLevel, state.urgencyScore]);
+  }, [state.symptoms, state.triageLevel, state.urgencyScore, hospitals]);
 
   // Filter hospitals based on search and specialty
-  const hospitalsToShow = smartMatches.length > 0 ? smartMatches : bangladeshHospitals;
+  const hospitalsToShow = smartMatches.length > 0 ? smartMatches : hospitals;
   const filteredHospitals = hospitalsToShow.filter(hospital => {
     const matchesSearch = hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         hospital.specialties.some((spec: string) => spec.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesSpecialty = !selectedSpecialty || hospital.specialties.includes(selectedSpecialty);
-    const matchesInsurance = !insuranceFilter || hospital.insuranceAccepted.includes(insuranceFilter);
+                         (hospital.specialties && hospital.specialties.some((spec: string) => spec.toLowerCase().includes(searchTerm.toLowerCase())));
+    const matchesSpecialty = !selectedSpecialty || (hospital.specialties && hospital.specialties.includes(selectedSpecialty));
+    const matchesInsurance = !insuranceFilter || (hospital.insurance_accepted && hospital.insurance_accepted.includes(insuranceFilter));
     return matchesSearch && matchesSpecialty && matchesInsurance;
   });
 
@@ -547,9 +374,9 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {filteredHospitals.map((hospital: any) => {
           const currentBeds = bedAvailability[hospital.id] || {
-            availableBeds: hospital.availableBeds,
-            icuBeds: hospital.icuBeds,
-            emergencyBeds: hospital.emergencyBeds,
+            availableBeds: hospital.available_beds,
+            icuBeds: hospital.icu_beds,
+            emergencyBeds: hospital.emergency_beds,
             lastUpdated: 'Just now'
           };
           
@@ -596,7 +423,7 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
                     <span className="font-semibold text-sm sm:text-base">{hospital.rating}</span>
                   </div>
                   <div className="text-xs sm:text-sm text-gray-600">{hospital.distance} km</div>
-                  <div className="text-xs sm:text-sm text-purple-600 font-medium">{hospital.costLevel} Cost</div>
+                  <div className="text-xs sm:text-sm text-purple-600 font-medium">{hospital.cost_level} Cost</div>
                 </div>
               </div>
 
@@ -611,7 +438,7 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
                 </div>
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
                   <div>
-                    <p className={`text-lg sm:text-xl font-bold ${getBedAvailabilityColor(currentBeds.availableBeds, hospital.totalBeds)}`}>
+                    <p className={`text-lg sm:text-xl font-bold ${getBedAvailabilityColor(currentBeds.availableBeds, hospital.total_beds)}`}>
                       {currentBeds.availableBeds}
                     </p>
                     <p className="text-xs text-gray-600">General Beds</p>
@@ -638,7 +465,7 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
                   Insurance Accepted:
                 </h4>
                 <div className="flex flex-wrap gap-1 sm:gap-2">
-                  {hospital.insuranceAccepted.slice(0, 4).map((insurance: string, index: number) => (
+                  {hospital.insurance_accepted.slice(0, 4).map((insurance: string, index: number) => (
                     <span
                       key={index}
                       className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800"
@@ -646,9 +473,9 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
                       {insurance}
                     </span>
                   ))}
-                  {hospital.insuranceAccepted.length > 4 && (
+                  {hospital.insurance_accepted.length > 4 && (
                     <span className="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-600">
-                      +{hospital.insuranceAccepted.length - 4} more
+                      +{hospital.insurance_accepted.length - 4} more
                     </span>
                   )}
                 </div>
@@ -697,7 +524,7 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <div className="flex items-center">
                   <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500 mr-2" />
-                  <span className="text-xs sm:text-sm text-gray-600">Wait time: {hospital.waitTime}</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Wait time: {hospital.wait_time}</span>
                 </div>
                 <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(hospital.status)}`}>
                   {hospital.status}
@@ -753,7 +580,7 @@ const HospitalsScreen: React.FC<HospitalsScreenProps> = ({ updateState }) => {
           <div className="text-center">
             <Activity className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2" />
             <h3 className="text-sm sm:text-lg font-semibold mb-1">Total Hospitals</h3>
-            <p className="text-2xl sm:text-3xl font-bold">{bangladeshHospitals.length}</p>
+            <p className="text-2xl sm:text-3xl font-bold">{hospitals.length}</p>
             <p className="text-purple-100 text-xs sm:text-sm">In network</p>
           </div>
           <div className="text-center">

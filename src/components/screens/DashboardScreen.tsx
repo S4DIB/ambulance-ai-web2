@@ -1,7 +1,8 @@
-import React from 'react';
-import { Heart, Phone, MapPin, AlertTriangle, Video, Clock, Brain, Stethoscope } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, Phone, MapPin, AlertTriangle, Video, Clock, Brain, Stethoscope, Database, CheckCircle, XCircle } from 'lucide-react';
 import { useTranslation } from '../../utils/translations';
 import MetricsDisplay from '../MetricsDisplay';
+import { supabase } from '../../utils/supabaseClient';
 
 interface DashboardScreenProps {
   updateState: (updates: any) => void;
@@ -11,6 +12,44 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ updateState }) => {
   const state = (window as any).state;
   const { t } = useTranslation();
   const currentUser = state.currentUser;
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [dbData, setDbData] = useState<any>(null);
+
+  // Check database connection
+  useEffect(() => {
+    const checkDatabase = async () => {
+      try {
+        // Test hospitals table
+        const { data: hospitals, error: hospitalsError } = await supabase
+          .from('hospitals')
+          .select('name, available_beds')
+          .limit(3);
+
+        // Test ambulances table
+        const { data: ambulances, error: ambulancesError } = await supabase
+          .from('ambulances')
+          .select('vehicle_number, status')
+          .limit(3);
+
+        if (hospitalsError || ambulancesError) {
+          setDbStatus('error');
+          console.error('Database test failed:', hospitalsError || ambulancesError);
+        } else {
+          setDbStatus('connected');
+          setDbData({
+            hospitals: hospitals || [],
+            ambulances: ambulances || []
+          });
+          console.log('✅ Database connected successfully!', { hospitals, ambulances });
+        }
+      } catch (error) {
+        setDbStatus('error');
+        console.error('Database connection failed:', error);
+      }
+    };
+
+    checkDatabase();
+  }, []);
 
   const handleVideoCall = () => {
     updateState({ 
@@ -58,6 +97,76 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ updateState }) => {
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
           Welcome {currentUser?.user_metadata?.full_name || currentUser?.email},
         </h1>
+      </div>
+
+      {/* Database Status Checker */}
+      <div className="mb-6 p-4 bg-white rounded-lg shadow-md border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Database className="h-5 w-5 mr-2" />
+            <span className="font-semibold">Database Status:</span>
+          </div>
+          <div className="flex items-center">
+            {dbStatus === 'checking' && (
+              <div className="flex items-center text-yellow-600">
+                <div className="animate-spin h-4 w-4 border-2 border-yellow-600 border-t-transparent rounded-full mr-2"></div>
+                Checking...
+              </div>
+            )}
+            {dbStatus === 'connected' && (
+              <div className="flex items-center text-green-600">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Connected
+              </div>
+            )}
+            {dbStatus === 'error' && (
+              <div className="flex items-center text-red-600">
+                <XCircle className="h-4 w-4 mr-2" />
+                Error
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {dbStatus === 'connected' && dbData && (
+          <div className="mt-3 text-sm text-gray-600">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <strong>Hospitals:</strong> {dbData.hospitals.length} found
+                <ul className="mt-1 ml-4">
+                  {dbData.hospitals.map((hospital: any, index: number) => (
+                    <li key={index}>• {hospital.name} ({hospital.available_beds} beds)</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <strong>Ambulances:</strong> {dbData.ambulances.length} found
+                <ul className="mt-1 ml-4">
+                  {dbData.ambulances.map((ambulance: any, index: number) => (
+                    <li key={index}>• {ambulance.vehicle_number} ({ambulance.status})</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {dbStatus === 'error' && (
+          <div className="mt-3 text-sm text-red-600">
+            Database connection failed. Check your Supabase configuration in .env file.
+          </div>
+        )}
+
+        {/* Database Test Button */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => updateState({ currentPage: 'database-test' })}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
+          >
+            <Database className="h-4 w-4 inline mr-2" />
+            Run Full Database Test
+          </button>
+        </div>
       </div>
 
       {/* Live Metrics Dashboard */}

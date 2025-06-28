@@ -6,10 +6,12 @@ import AIAssessmentScreen from './components/screens/AIAssessmentScreen';
 import HospitalsScreen from './components/screens/HospitalsScreen';
 import TrackingScreen from './components/screens/TrackingScreen';
 import HistoryScreen from './components/screens/HistoryScreen';
+import DatabaseTestScreen from './components/screens/DatabaseTestScreen';
 import { EmergencyErrorBoundary } from './utils/errorBoundary';
 import { analytics } from './utils/analytics';
 import { offlineStorage } from './utils/offlineStorage';
 import { registerServiceWorker, PerformanceMonitor } from './utils/performanceOptimizer';
+import { supabase } from './utils/supabaseClient';
 
 // Initialize Bolt state
 if (typeof window !== 'undefined' && !window.state) {
@@ -59,6 +61,26 @@ if (typeof window !== 'undefined' && !window.state) {
     language: navigator.language,
     online: navigator.onLine
   });
+
+  // Test database connection
+  const testDatabaseConnection = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('hospitals')
+        .select('name, available_beds')
+        .limit(1);
+      
+      if (error) {
+        console.error('Database connection failed:', error);
+      } else {
+        console.log('✅ Database connected successfully! Found hospitals:', data);
+      }
+    } catch (err) {
+      console.error('Database test failed:', err);
+    }
+  };
+
+  testDatabaseConnection();
 }
 
 function App() {
@@ -118,6 +140,8 @@ function App() {
           return <TrackingScreen updateState={updateState} />;
         case 'history':
           return <HistoryScreen updateState={updateState} />;
+        case 'database-test':
+          return <DatabaseTestScreen updateState={updateState} />;
         default:
           return <HomeScreen updateState={updateState} />;
       }

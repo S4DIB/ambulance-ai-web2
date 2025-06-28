@@ -4,6 +4,8 @@ import { useTranslation } from '../../utils/translations';
 import { analytics } from '../../utils/analytics';
 import { offlineStorage } from '../../utils/offlineStorage';
 import { ImageOptimizer } from '../../utils/performanceOptimizer';
+import { EmergencyAPI } from '../../utils/emergencyAPI';
+import { EmergencyRequest } from '../../utils/supabaseClient';
 
 interface BookAmbulanceScreenProps {
   updateState: (updates: any) => void;
@@ -208,7 +210,6 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
 
   const handleRequestAmbulance = async () => {
     setIsSubmitting(true);
-    
     try {
       const requestData = {
         ...formData,
@@ -226,6 +227,29 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
       }
 
       if (bookingType === 'emergency') {
+        // --- Supabase integration: create real emergency request ---
+        const currentUser = (window as any).state.currentUser;
+        if (!currentUser || !currentUser.id) {
+          throw new Error('User not logged in. Please log in to book an ambulance.');
+        }
+        const supabaseRequest: Omit<EmergencyRequest, 'id' | 'created_at' | 'updated_at'> = {
+          user_id: currentUser.id,
+          patient_name: formData.patientName,
+          pickup_location: formData.pickupLocation,
+          destination_location: formData.destinationLocation || undefined,
+          symptoms: formData.symptoms,
+          triage_level: 3, // Default, or get from assessment if available
+          urgency_score: 50, // Default, or get from assessment if available
+          status: 'pending',
+          cost: calculatedPrice?.total,
+        };
+        try {
+          await EmergencyAPI.createEmergencyRequest(supabaseRequest);
+        } catch (err: any) {
+          alert('Failed to create emergency request in database: ' + (err.message || err));
+        }
+        // --- End Supabase integration ---
+
         // Update state with form data and booking status
         updateState({
           patientName: formData.patientName,
@@ -254,6 +278,28 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
         }, 8000);
       } else {
         // Handle scheduled booking
+        // --- Supabase integration: create real scheduled emergency request ---
+        const currentUser = (window as any).state.currentUser;
+        if (!currentUser || !currentUser.id) {
+          throw new Error('User not logged in. Please log in to book an ambulance.');
+        }
+        const supabaseRequest: Omit<EmergencyRequest, 'id' | 'created_at' | 'updated_at'> = {
+          user_id: currentUser.id,
+          patient_name: formData.patientName,
+          pickup_location: formData.pickupLocation,
+          destination_location: formData.destinationLocation || undefined,
+          symptoms: formData.symptoms,
+          triage_level: 3, // Default, or get from assessment if available
+          urgency_score: 30, // Lower urgency for scheduled
+          status: 'pending',
+          cost: calculatedPrice?.total,
+        };
+        try {
+          await EmergencyAPI.createEmergencyRequest(supabaseRequest);
+        } catch (err: any) {
+          alert('Failed to create scheduled ambulance request in database: ' + (err.message || err));
+        }
+        // --- End Supabase integration ---
         updateState({
           patientName: formData.patientName,
           pickupLocation: formData.pickupLocation,
@@ -265,7 +311,6 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
           calculatedPrice: calculatedPrice?.total,
           currentPage: 'scheduledConfirmation'
         });
-        
         analytics.track('scheduled_booking_submitted', requestData);
       }
     } catch (error: any) {
@@ -274,7 +319,6 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
         error: error.message,
         bookingType 
       });
-      
       // Show error message but still proceed for emergency
       if (bookingType === 'emergency') {
         alert('Request saved offline. Will sync when connection is restored.');
@@ -365,6 +409,29 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
               className="border border-gray-300 text-gray-700 px-4 sm:px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors duration-200 text-sm sm:text-base"
             >
               {t('returnHome')}
+            </button>
+            <button
+              onClick={() => {
+                updateState({ bookingStatus: 'none', currentPage: 'book' });
+                setFormData({
+                  patientName: '',
+                  pickupLocation: '',
+                  symptoms: '',
+                  destinationLocation: '',
+                  scheduledDate: '',
+                  scheduledTime: '',
+                  appointmentType: '',
+                  specialRequirements: '',
+                  contactNumber: '',
+                  emergencyContact: '',
+                  wheelchairAccess: false,
+                  oxygenRequired: false,
+                  stretcherRequired: false
+                });
+              }}
+              className="bg-green-600 text-white px-4 sm:px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base"
+            >
+              Book Another Ambulance
             </button>
           </div>
         </div>
