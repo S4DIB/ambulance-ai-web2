@@ -394,4 +394,48 @@ export class RealTimeAPI {
       })
       .subscribe();
   }
+}
+
+export interface ScheduledAmbulanceRequest {
+  id?: string;
+  user_id: string;
+  patient_name: string;
+  pickup_location: string;
+  destination_location?: string;
+  symptoms?: string;
+  scheduled_date: string; // YYYY-MM-DD
+  scheduled_time: string; // HH:MM:SS
+  appointment_type?: string;
+  special_requirements?: string;
+  contact_number?: string;
+  emergency_contact?: string;
+  wheelchair_access?: boolean;
+  oxygen_required?: boolean;
+  stretcher_required?: boolean;
+  cost?: number;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export class ScheduledAmbulanceAPI {
+  static async createScheduledAmbulanceRequest(request: Omit<ScheduledAmbulanceRequest, 'id' | 'created_at' | 'updated_at'>): Promise<ScheduledAmbulanceRequest> {
+    const { data, error } = await supabase
+      .from('scheduled_ambulance_requests')
+      .insert([request])
+      .select()
+      .single();
+    if (error) throw new Error(`Failed to create scheduled ambulance request: ${error.message}`);
+    return data;
+  }
+
+  static async getUserScheduledRequests(userId: string): Promise<ScheduledAmbulanceRequest[]> {
+    const { data, error } = await supabase
+      .from('scheduled_ambulance_requests')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(`Failed to fetch scheduled ambulance requests: ${error.message}`);
+    return data || [];
+  }
 } 

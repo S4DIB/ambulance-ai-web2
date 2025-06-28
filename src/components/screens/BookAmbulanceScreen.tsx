@@ -4,7 +4,7 @@ import { useTranslation } from '../../utils/translations';
 import { analytics } from '../../utils/analytics';
 import { offlineStorage } from '../../utils/offlineStorage';
 import { ImageOptimizer } from '../../utils/performanceOptimizer';
-import { EmergencyAPI } from '../../utils/emergencyAPI';
+import { EmergencyAPI, ScheduledAmbulanceAPI, ScheduledAmbulanceRequest } from '../../utils/emergencyAPI';
 import { EmergencyRequest } from '../../utils/supabaseClient';
 
 interface BookAmbulanceScreenProps {
@@ -278,28 +278,34 @@ const BookAmbulanceScreen: React.FC<BookAmbulanceScreenProps> = ({ updateState }
         }, 8000);
       } else {
         // Handle scheduled booking
-        // --- Supabase integration: create real scheduled emergency request ---
         const currentUser = (window as any).state.currentUser;
         if (!currentUser || !currentUser.id) {
           throw new Error('User not logged in. Please log in to book an ambulance.');
         }
-        const supabaseRequest: Omit<EmergencyRequest, 'id' | 'created_at' | 'updated_at'> = {
+        // Prepare data for scheduled_ambulance_requests
+        const scheduledRequest: Omit<ScheduledAmbulanceRequest, 'id' | 'created_at' | 'updated_at'> = {
           user_id: currentUser.id,
           patient_name: formData.patientName,
           pickup_location: formData.pickupLocation,
           destination_location: formData.destinationLocation || undefined,
           symptoms: formData.symptoms,
-          triage_level: 3, // Default, or get from assessment if available
-          urgency_score: 30, // Lower urgency for scheduled
-          status: 'pending',
+          scheduled_date: formData.scheduledDate,
+          scheduled_time: formData.scheduledTime,
+          appointment_type: formData.appointmentType || undefined,
+          special_requirements: formData.specialRequirements || undefined,
+          contact_number: formData.contactNumber || undefined,
+          emergency_contact: formData.emergencyContact || undefined,
+          wheelchair_access: formData.wheelchairAccess,
+          oxygen_required: formData.oxygenRequired,
+          stretcher_required: formData.stretcherRequired,
           cost: calculatedPrice?.total,
+          status: 'pending',
         };
         try {
-          await EmergencyAPI.createEmergencyRequest(supabaseRequest);
+          await ScheduledAmbulanceAPI.createScheduledAmbulanceRequest(scheduledRequest);
         } catch (err: any) {
           alert('Failed to create scheduled ambulance request in database: ' + (err.message || err));
         }
-        // --- End Supabase integration ---
         updateState({
           patientName: formData.patientName,
           pickupLocation: formData.pickupLocation,

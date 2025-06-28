@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { History, Calendar, MapPin, Clock, FileText, Download, Brain, Truck, Menu, X } from 'lucide-react';
+import { EmergencyAPI, ScheduledAmbulanceAPI } from '../../utils/emergencyAPI';
+import { EmergencyRequest } from '../../utils/supabaseClient';
+import { ScheduledAmbulanceRequest } from '../../utils/emergencyAPI';
 
 interface HistoryScreenProps {
   updateState: (updates: any) => void;
@@ -9,90 +12,61 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ updateState }) => {
   const state = (window as any).state;
   const [selectedTab, setSelectedTab] = useState('requests');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [ambulanceHistory, setAmbulanceHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Use state data or fallback to demo data
-  const ambulanceHistory = state.bookingHistory?.length > 0 ? state.bookingHistory : [
-    {
-      id: 1,
-      date: "2024-01-15",
-      time: "14:30",
-      type: "Emergency",
-      pickup: "123 Main Street, Dhaka",
-      destination: "Dhaka Medical College Hospital",
-      duration: "25 minutes",
-      status: "Completed",
-      cost: "$450.00",
-      crew: "Dr. Rahman, Paramedic Ahmed",
-      urgencyScore: 85,
-      triageLevel: 2,
-      patientName: "John Doe",
-      symptoms: "Chest pain and shortness of breath"
-    },
-    {
-      id: 2,
-      date: "2024-01-20",
-      time: "09:15",
-      type: "Scheduled",
-      pickup: "456 Park Avenue, Dhaka",
-      destination: "Square Hospital Limited",
-      duration: "Expected 30 minutes",
-      status: "Scheduled",
-      cost: "$320.00",
-      crew: "Dr. Khan, Paramedic Hasan",
-      urgencyScore: 45,
-      triageLevel: 4,
-      patientName: "Sarah Ahmed",
-      symptoms: "Routine medical transport"
-    },
-    {
-      id: 3,
-      date: "2024-01-22",
-      time: "16:45",
-      type: "Emergency",
-      pickup: "789 Commercial Street, Dhaka",
-      destination: "United Hospital Limited",
-      duration: "18 minutes elapsed",
-      status: "In Progress",
-      cost: "Calculating...",
-      crew: "Dr. Islam, Paramedic Karim",
-      urgencyScore: 92,
-      triageLevel: 1,
-      patientName: "Michael Chen",
-      symptoms: "Severe allergic reaction"
-    },
-    {
-      id: 4,
-      date: "2024-01-10",
-      time: "22:30",
-      type: "Emergency",
-      pickup: "321 University Road, Dhaka",
-      destination: "Apollo Hospitals Dhaka",
-      duration: "35 minutes",
-      status: "Completed",
-      cost: "$520.00",
-      crew: "Dr. Begum, Paramedic Ali",
-      urgencyScore: 78,
-      triageLevel: 2,
-      patientName: "Lisa Rahman",
-      symptoms: "Severe abdominal pain"
-    },
-    {
-      id: 5,
-      date: "2024-01-05",
-      time: "11:20",
-      type: "Transfer",
-      pickup: "City General Hospital",
-      destination: "Specialized Cardiac Center",
-      duration: "42 minutes",
-      status: "Completed",
-      cost: "$380.00",
-      crew: "Dr. Hossain, Paramedic Uddin",
-      urgencyScore: 60,
-      triageLevel: 3,
-      patientName: "Robert Khan",
-      symptoms: "Inter-hospital transfer for cardiac surgery"
-    }
-  ];
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        const currentUser = state.currentUser;
+        if (!currentUser || !currentUser.id) {
+          setAmbulanceHistory([]);
+          setLoading(false);
+          return;
+        }
+        // Fetch emergency requests
+        const emergencyRequests: EmergencyRequest[] = await EmergencyAPI.getUserEmergencyRequests(currentUser.id);
+        // Fetch scheduled ambulance requests
+        const scheduledRequests: ScheduledAmbulanceRequest[] = await ScheduledAmbulanceAPI.getUserScheduledRequests(currentUser.id);
+        // Map and merge both types for display
+        const mappedEmergencies = emergencyRequests.map(req => ({
+          id: req.id,
+          date: req.created_at ? req.created_at.split('T')[0] : '',
+          time: req.created_at ? req.created_at.split('T')[1]?.slice(0,5) : '',
+          type: 'Emergency',
+          pickup: req.pickup_location,
+          destination: req.destination_location,
+          status: req.status,
+          cost: req.cost ? `৳${req.cost}` : 'N/A',
+          urgencyScore: req.urgency_score,
+          triageLevel: req.triage_level,
+          patientName: req.patient_name,
+          symptoms: req.symptoms
+        }));
+        const mappedScheduled = scheduledRequests.map(req => ({
+          id: req.id,
+          date: req.scheduled_date,
+          time: req.scheduled_time,
+          type: 'Scheduled',
+          pickup: req.pickup_location,
+          destination: req.destination_location,
+          status: req.status,
+          cost: req.cost ? `৳${req.cost}` : 'N/A',
+          urgencyScore: 30, // or map from your logic
+          triageLevel: 3, // or map from your logic
+          patientName: req.patient_name,
+          symptoms: req.symptoms
+        }));
+        setAmbulanceHistory([...mappedEmergencies, ...mappedScheduled].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time)));
+      } catch (error) {
+        setAmbulanceHistory([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [state.currentUser]);
 
   const assessmentHistory = state.assessmentHistory?.length > 0 ? state.assessmentHistory : [
     {
@@ -240,9 +214,6 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ updateState }) => {
                         </p>
                       </div>
                     </div>
-                    <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getStatusColor(request.status)} self-start`}>
-                      {request.status}
-                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">

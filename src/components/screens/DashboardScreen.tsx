@@ -99,76 +99,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ updateState }) => {
         </h1>
       </div>
 
-      {/* Database Status Checker */}
-      <div className="mb-6 p-4 bg-white rounded-lg shadow-md border">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Database className="h-5 w-5 mr-2" />
-            <span className="font-semibold">Database Status:</span>
-          </div>
-          <div className="flex items-center">
-            {dbStatus === 'checking' && (
-              <div className="flex items-center text-yellow-600">
-                <div className="animate-spin h-4 w-4 border-2 border-yellow-600 border-t-transparent rounded-full mr-2"></div>
-                Checking...
-              </div>
-            )}
-            {dbStatus === 'connected' && (
-              <div className="flex items-center text-green-600">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Connected
-              </div>
-            )}
-            {dbStatus === 'error' && (
-              <div className="flex items-center text-red-600">
-                <XCircle className="h-4 w-4 mr-2" />
-                Error
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {dbStatus === 'connected' && dbData && (
-          <div className="mt-3 text-sm text-gray-600">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <strong>Hospitals:</strong> {dbData.hospitals.length} found
-                <ul className="mt-1 ml-4">
-                  {dbData.hospitals.map((hospital: any, index: number) => (
-                    <li key={index}>• {hospital.name} ({hospital.available_beds} beds)</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <strong>Ambulances:</strong> {dbData.ambulances.length} found
-                <ul className="mt-1 ml-4">
-                  {dbData.ambulances.map((ambulance: any, index: number) => (
-                    <li key={index}>• {ambulance.vehicle_number} ({ambulance.status})</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {dbStatus === 'error' && (
-          <div className="mt-3 text-sm text-red-600">
-            Database connection failed. Check your Supabase configuration in .env file.
-          </div>
-        )}
-
-        {/* Database Test Button */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <button
-            onClick={() => updateState({ currentPage: 'database-test' })}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
-          >
-            <Database className="h-4 w-4 inline mr-2" />
-            Run Full Database Test
-          </button>
-        </div>
-      </div>
-
       {/* Live Metrics Dashboard */}
       <div className="mb-8 sm:mb-12">
         <div className="flex items-center justify-between mb-6">
@@ -272,22 +202,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ updateState }) => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Video Call Feature Highlight */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 sm:p-8 text-white text-center">
-        <Video className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4" />
-        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{t('videoConsultationAvailable')}</h2>
-        <p className="text-blue-100 mb-4 sm:mb-6 text-sm sm:text-base">
-          {t('connectWithQualified')}
-        </p>
-        <button 
-          onClick={handleVideoCall}
-          className="bg-white text-blue-600 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-sm sm:text-base"
-        >
-          <Video className="h-4 w-4 inline mr-2" />
-          {t('startVideoConsultation')}
-        </button>
       </div>
 
       {/* Quick Stats */}
