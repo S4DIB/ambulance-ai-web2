@@ -1,5 +1,12 @@
-// Real AI Service for Medical Assessment
-// This integrates with actual AI APIs instead of fake data
+// AI Service for Medical Assessment
+// Supports OpenRouter (DeepSeek), OpenAI, and Google Cloud
+//
+// ENV VARIABLES (set in .env):
+// VITE_OPENROUTER_API_KEY=your_openrouter_api_key
+// VITE_OPENAI_API_KEY=your_openai_api_key
+// VITE_GOOGLE_CLOUD_API_KEY=your_google_cloud_api_key
+//
+// Priority: OpenRouter (DeepSeek) > OpenAI > Google Cloud
 
 export interface AIAnalysisResult {
   triageLevel: number; // 1-5
@@ -22,31 +29,49 @@ export interface PhotoAnalysisResult {
 }
 
 export class AIService {
+  private static readonly OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
   private static readonly OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
   private static readonly GOOGLE_CLOUD_API_KEY = import.meta.env.VITE_GOOGLE_CLOUD_API_KEY;
   private static readonly MEDICAL_AI_ENDPOINT = import.meta.env.VITE_MEDICAL_AI_ENDPOINT;
 
-  // Analyze symptoms using OpenAI GPT-4 for medical assessment
-  static async analyzeSymptoms(symptoms: string, patientAge?: number, patientGender?: string): Promise<AIAnalysisResult> {
-    if (!this.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
+  // Utility to ensure value is always an array
+  private static toArray(val: any) {
+    return Array.isArray(val) ? val : val ? [val] : [];
+  }
 
+  // Determine which provider to use
+  private static getProvider() {
+    if (this.OPENROUTER_API_KEY) return 'openrouter';
+    if (this.OPENAI_API_KEY) return 'openai';
+    if (this.GOOGLE_CLOUD_API_KEY) return 'google';
+    return null;
+  }
+
+  // Analyze symptoms using the best available provider
+  static async analyzeSymptoms(symptoms: string, patientAge?: number, patientGender?: string): Promise<AIAnalysisResult> {
+    const provider = this.getProvider();
+    if (!provider) {
+      throw new Error('No AI API key configured. Please set VITE_OPENROUTER_API_KEY, VITE_OPENAI_API_KEY, or VITE_GOOGLE_CLOUD_API_KEY in your .env file.');
+    }
     const startTime = Date.now();
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a medical AI assistant specializing in emergency triage. Analyze the symptoms and provide:
+      if (provider === 'openrouter') {
+        // Use OpenRouter (DeepSeek)
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
+            'X-Title': 'Rescufast.ai',
+          },
+          body: JSON.stringify({
+            model: 'deepseek/deepseek-r1-0528:free',
+            messages: [
+              {
+                role: 'system',
+                content: `You are a medical AI assistant specializing in emergency triage. Analyze the symptoms and provide:
 1. Triage level (1-5, where 1=immediate, 5=non-urgent)
 2. Urgency score (0-100, where 0=not urgent, 100=critical)
 3. Confidence level (0-100)
@@ -56,44 +81,105 @@ export class AIService {
 7. Immediate actions needed
 
 Respond in JSON format only.`
-            },
-            {
-              role: 'user',
-              content: `Patient symptoms: ${symptoms}
+              },
+              {
+                role: 'user',
+                content: `Patient symptoms: ${symptoms}
 Patient age: ${patientAge || 'unknown'}
 Patient gender: ${patientGender || 'unknown'}
 
 Provide medical triage analysis in JSON format.`
-            }
-          ],
-          temperature: 0.1,
-          max_tokens: 1000
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+              }
+            ],
+            temperature: 0.1,
+            max_tokens: 1000
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`OpenRouter API error: ${response.status}`);
+        }
+        const data = await response.json();
+        // Patch: Remove Markdown code block if present
+        let content = data.choices[0].message.content.trim();
+        if (content.startsWith('```')) {
+          content = content.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '').trim();
+        }
+        const analysis = JSON.parse(content);
+        return {
+          triageLevel: analysis.triageLevel,
+          urgencyScore: analysis.urgencyScore,
+          confidence: analysis.confidence,
+          recommendations: AIService.toArray(analysis.recommendations),
+          riskFactors: AIService.toArray(analysis.riskFactors),
+          suggestedSpecialties: AIService.toArray(analysis.suggestedSpecialties),
+          immediateActions: AIService.toArray(analysis.immediateActions),
+          aiModel: 'deepseek/deepseek-r1-0528:free (OpenRouter)',
+          processingTime: Date.now() - startTime
+        };
       }
+      if (provider === 'openai') {
+        // Use OpenAI
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo', // Use gpt-4 if you have access
+            messages: [
+              {
+                role: 'system',
+                content: `You are a medical AI assistant specializing in emergency triage. Analyze the symptoms and provide:
+1. Triage level (1-5, where 1=immediate, 5=non-urgent)
+2. Urgency score (0-100, where 0=not urgent, 100=critical)
+3. Confidence level (0-100)
+4. Specific recommendations
+5. Risk factors to consider
+6. Suggested medical specialties
+7. Immediate actions needed
 
-      const data = await response.json();
-      const analysis = JSON.parse(data.choices[0].message.content);
+Respond in JSON format only.`
+              },
+              {
+                role: 'user',
+                content: `Patient symptoms: ${symptoms}
+Patient age: ${patientAge || 'unknown'}
+Patient gender: ${patientGender || 'unknown'}
 
-      return {
-        triageLevel: analysis.triageLevel,
-        urgencyScore: analysis.urgencyScore,
-        confidence: analysis.confidence,
-        recommendations: analysis.recommendations,
-        riskFactors: analysis.riskFactors,
-        suggestedSpecialties: analysis.suggestedSpecialties,
-        immediateActions: analysis.immediateActions,
-        aiModel: 'GPT-4',
-        processingTime: Date.now() - startTime
-      };
-
+Provide medical triage analysis in JSON format.`
+              }
+            ],
+            temperature: 0.1,
+            max_tokens: 1000
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.status}`);
+        }
+        const data = await response.json();
+        // Patch: Remove Markdown code block if present
+        let content = data.choices[0].message.content.trim();
+        if (content.startsWith('```')) {
+          content = content.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '').trim();
+        }
+        const analysis = JSON.parse(content);
+        return {
+          triageLevel: analysis.triageLevel,
+          urgencyScore: analysis.urgencyScore,
+          confidence: analysis.confidence,
+          recommendations: AIService.toArray(analysis.recommendations),
+          riskFactors: AIService.toArray(analysis.riskFactors),
+          suggestedSpecialties: AIService.toArray(analysis.suggestedSpecialties),
+          immediateActions: AIService.toArray(analysis.immediateActions),
+          aiModel: 'gpt-3.5-turbo (OpenAI)',
+          processingTime: Date.now() - startTime
+        };
+      }
+      // Fallback: Google Cloud or rule-based
+      return this.fallbackAnalysis(symptoms);
     } catch (error) {
       console.error('AI analysis failed:', error);
-      
-      // Fallback to rule-based analysis
       return this.fallbackAnalysis(symptoms);
     }
   }
@@ -417,7 +503,7 @@ Provide medical triage analysis in JSON format.`
     let combinedTriageLevel = symptomAnalysis.triageLevel;
     let combinedUrgencyScore = symptomAnalysis.urgencyScore;
     let combinedConfidence = symptomAnalysis.confidence;
-    const combinedRecommendations = [...symptomAnalysis.recommendations];
+    const combinedRecommendations = [...AIService.toArray(symptomAnalysis.recommendations)];
 
     // Adjust based on photo analysis
     photoAnalysis.forEach(photo => {
@@ -429,8 +515,7 @@ Provide medical triage analysis in JSON format.`
         combinedTriageLevel = Math.min(combinedTriageLevel, 2);
         combinedUrgencyScore = Math.max(combinedUrgencyScore, 80);
       }
-      
-      combinedRecommendations.push(...photo.recommendations);
+      combinedRecommendations.push(...AIService.toArray(photo.recommendations));
     });
 
     return {

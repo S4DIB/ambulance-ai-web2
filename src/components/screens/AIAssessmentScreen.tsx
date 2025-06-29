@@ -3,6 +3,7 @@ import { Brain, MessageCircle, CheckCircle, AlertTriangle, ArrowRight, Mic, MicO
 import { analytics } from '../../utils/analytics';
 import { ImageOptimizer } from '../../utils/performanceOptimizer';
 import { useTranslation } from '../../utils/translations';
+import { AIService } from '../../utils/aiService';
 
 interface AIAssessmentScreenProps {
   updateState: (updates: any) => void;
@@ -19,6 +20,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState<string>('');
 
   // Initialize speech recognition
   React.useEffect(() => {
@@ -49,7 +51,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
         }
         
         if (finalTranscript) {
-          setSymptoms(prev => prev + (prev ? ' ' : '') + finalTranscript);
+          setSymptoms((prev: string) => prev + (prev ? ' ' : '') + finalTranscript);
           analytics.track('voice_input_transcribed', { 
             length: finalTranscript.length 
           });
@@ -114,7 +116,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
             file: optimizedFile,
             preview
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Image optimization failed:', error);
           analytics.track('image_optimization_error', { error: error.message });
           
@@ -157,7 +159,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
         analysis: medicalAnalyses[Math.floor(Math.random() * medicalAnalyses.length)]
       }));
       
-      setUploadedImages(prev => {
+      setUploadedImages((prev: Array<{file: File, preview: string, analysis?: string}>) => {
         const updated = [...prev];
         analyzedImages.forEach(analyzed => {
           const index = updated.findIndex(img => img.file.name === analyzed.file.name);
@@ -170,7 +172,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
       
       // Add analysis to symptoms
       const analysisText = analyzedImages.map(img => `Photo Analysis: ${img.analysis}`).join(' ');
-      setSymptoms(prev => prev + (prev ? '\n\n' : '') + analysisText);
+      setSymptoms((prev: string) => prev + (prev ? '\n\n' : '') + analysisText);
       
       analytics.track('image_analysis_completed', { 
         imageCount: images.length,
@@ -233,36 +235,57 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
 
   const handleGetTriageLevel = async () => {
     setIsProcessing(true);
-    
-    // Generate random triage and urgency as specified
-    const triageLevel = Math.floor(Math.random() * 5) + 1;
-    const urgencyScore = Math.floor(Math.random() * 101);
-    
-    const assessmentData = {
-      triageLevel,
-      urgencyScore,
-      symptoms,
-      uploadedImages: uploadedImages.length,
-      voiceUsed: isVoiceSupported && symptoms.includes('voice'),
-      timestamp: Date.now()
-    };
-    
-    // Track assessment completion
-    analytics.trackAIAssessment(assessmentData);
-    
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Update state with assessment results
-    updateState({
-      triageLevel,
-      urgencyScore,
-      symptoms,
-      uploadedImages: uploadedImages.length,
-      currentPage: 'assessmentResult'
-    });
-    
-    setIsProcessing(false);
+    setProcessingStep('Initializing AI analysis...');
+    try {
+      console.log('🚀 Starting AI Assessment...');
+      // Prepare files for analysis
+      const photoFiles = uploadedImages.map(img => img.file);
+      setProcessingStep('Analyzing symptoms with AI...');
+      console.log('🤖 Calling AI service...');
+      // Call real AI service
+      const aiResult = await AIService.comprehensiveAnalysis(
+        symptoms,
+        photoFiles,
+        undefined, // patientAge - could be added to form
+        undefined  // patientGender - could be added to form
+      );
+      console.log('✅ AI Analysis completed:', aiResult);
+      setProcessingStep('Processing results...');
+      const assessmentData = {
+        triageLevel: aiResult.triageLevel,
+        urgencyScore: aiResult.urgencyScore,
+        symptoms,
+        uploadedImages: uploadedImages.length,
+        voiceUsed: isVoiceSupported && symptoms.includes('voice'),
+        timestamp: Date.now(),
+        aiConfidence: aiResult.confidence,
+        aiRecommendations: aiResult.recommendations,
+        aiRiskFactors: aiResult.riskFactors,
+        aiModel: aiResult.aiModel,
+        processingTime: aiResult.processingTime
+      };
+      analytics.trackAIAssessment(assessmentData);
+      console.log('📊 Updating state with AI results...');
+      updateState({
+        triageLevel: aiResult.triageLevel,
+        urgencyScore: aiResult.urgencyScore,
+        symptoms,
+        uploadedImages: uploadedImages.length,
+        currentPage: 'assessmentResult',
+        aiConfidence: aiResult.confidence,
+        aiRecommendations: aiResult.recommendations,
+        aiRiskFactors: aiResult.riskFactors,
+        aiModel: aiResult.aiModel
+      });
+      console.log('✅ Assessment complete! Redirecting to results...');
+    } catch (error: any) {
+      console.error('❌ AI Assessment failed:', error);
+      let errorMessage = error?.message || 'AI assessment failed. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setIsProcessing(false);
+      setProcessingStep('');
+    }
   };
 
   const getTriageColor = (level: number) => {
@@ -370,6 +393,62 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                 )}
               </div>
               <p className="text-gray-700 text-sm sm:text-base whitespace-pre-wrap">{state.symptoms}</p>
+            </div>
+          )}
+
+          {/* AI Analysis Details */}
+          {state.aiConfidence && (
+            <div className="bg-blue-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-blue-900">AI Analysis Details</h3>
+                <div className="flex items-center text-sm text-blue-700">
+                  <Brain className="h-4 w-4 mr-2" />
+                  {state.aiModel || 'GPT-4'}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-800 mb-2">Confidence Level</h4>
+                  <div className="flex items-center">
+                    <div className="w-full bg-blue-200 rounded-full h-2 mr-3">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${state.aiConfidence}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-semibold text-blue-800">{state.aiConfidence}%</span>
+                  </div>
+                </div>
+                
+                {state.aiRecommendations && state.aiRecommendations.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-blue-800 mb-2">AI Recommendations</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      {state.aiRecommendations.slice(0, 3).map((rec: string, index: number) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-blue-600 mr-2">•</span>
+                          {rec}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {state.aiRiskFactors && state.aiRiskFactors.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-orange-800 mb-2">Risk Factors</h4>
+                    <ul className="text-sm text-orange-700 space-y-1">
+                      {state.aiRiskFactors.slice(0, 3).map((risk: string, index: number) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-orange-600 mr-2">⚠</span>
+                          {risk}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -503,7 +582,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                   {t('dropPhotosHere')}
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                  {t('uploadImagesDesc')}
+                  Upload images of injuries, rashes, or medical conditions for AI analysis
                 </p>
               </div>
               
@@ -518,7 +597,10 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                 </button>
                 <button
                   type="button"
-                  onClick={() => document.querySelector('input[type="file"]')?.click()}
+                  onClick={() => {
+                    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+                    fileInput?.click();
+                  }}
                   className="inline-flex items-center px-3 sm:px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors duration-200 text-sm sm:text-base"
                 >
                   <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
@@ -680,14 +762,14 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
             {isProcessing ? (
               <div className="flex items-center">
                 <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                {t('processingAssessment')}
+                {processingStep || 'Processing Assessment...'}
               </div>
             ) : (
-              t('getAIAssessment')
+              'Get AI Assessment'
             )}
           </button>
           <p className="text-xs sm:text-sm text-gray-500 mt-2">
-            {t('provideSymptomsOrPhotos')}
+            {isProcessing ? 'This may take 10-30 seconds...' : 'Provide symptoms or photos to get started'}
           </p>
         </div>
       </div>
