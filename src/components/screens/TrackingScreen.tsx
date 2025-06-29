@@ -4,6 +4,7 @@ import { useTranslation } from '../../utils/translations';
 import { analytics } from '../../utils/analytics';
 import MetricsDisplay from '../MetricsDisplay';
 import { metricsSimulator } from '../../utils/metricsData';
+import { HospitalAPI } from '../../utils/emergencyAPI';
 
 interface TrackingScreenProps {
   updateState: (updates: any) => void;
@@ -23,58 +24,7 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
   const [popupStep, setPopupStep] = useState(0); // 0: none, 1: hospital search, 2: hospital found, 3: route search, 4: route found
   const [showHospitalSelect, setShowHospitalSelect] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState<any>(null);
-
-  // Hospital data (copied from HospitalsScreen)
-  const hospitalOptions = [
-    {
-      id: 1,
-      name: "Dhaka Medical College Hospital",
-      availableBeds: 45,
-      costLevel: "Low",
-      address: "Ramna, Dhaka-1000, Bangladesh",
-      fare: 1200
-    },
-    {
-      id: 2,
-      name: "Square Hospital Limited",
-      availableBeds: 23,
-      costLevel: "High",
-      address: "18/F, Bir Uttam Qazi Nuruzzaman Sarak, West Panthapath, Dhaka-1205",
-      fare: 1800
-    },
-    {
-      id: 3,
-      name: "Bangabandhu Sheikh Mujib Medical University",
-      availableBeds: 8,
-      costLevel: "Medium",
-      address: "Shahbag, Dhaka-1000, Bangladesh",
-      fare: 1500
-    },
-    {
-      id: 4,
-      name: "United Hospital Limited",
-      availableBeds: 18,
-      costLevel: "High",
-      address: "Plot 15, Road 71, Gulshan-2, Dhaka-1212",
-      fare: 2000
-    },
-    {
-      id: 5,
-      name: "Apollo Hospitals Dhaka",
-      availableBeds: 31,
-      costLevel: "Premium",
-      address: "Plot 81, Block E, Bashundhara R/A, Dhaka-1229",
-      fare: 2200
-    },
-    {
-      id: 6,
-      name: "Ibn Sina Hospital",
-      availableBeds: 15,
-      costLevel: "Medium",
-      address: "House 48, Road 9/A, Dhanmondi, Dhaka-1209",
-      fare: 1400
-    }
-  ];
+  const [hospitalOptions, setHospitalOptions] = useState<any[]>([]);
 
   // Update time every second
   useEffect(() => {
@@ -153,6 +103,22 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
     }
     return () => clearTimeout(timer);
   }, [showArrivalPopup, popupStep]);
+
+  // Fetch 6 random hospitals from DB on mount
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const hospitals = await HospitalAPI.getAvailableHospitals();
+        // Shuffle and pick 6 random hospitals
+        const shuffled = hospitals.sort(() => 0.5 - Math.random());
+        setHospitalOptions(shuffled.slice(0, 6));
+      } catch (error) {
+        setHospitalOptions([]);
+        console.error('Failed to fetch hospitals:', error);
+      }
+    };
+    fetchHospitals();
+  }, []);
 
   const handleVideoCall = () => {
     updateState({ 
@@ -385,7 +351,7 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
                     onClick={() => {
                       setSelectedHospital(hospital);
                       setShowHospitalSelect(false);
-                      // Optionally: updateState({ selectedHospital: hospital });
+                      updateState({ currentPage: 'userToHospitalTracking', selectedHospital: hospital });
                     }}
                     className="mt-2 w-full bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold py-2 md:py-2.5 shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >

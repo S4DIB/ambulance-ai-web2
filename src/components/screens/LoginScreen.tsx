@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Chrome, UserCheck, Shield, Clock, Zap, Brain, Stethoscope, UserPlus, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Chrome, UserCheck, Shield, Clock, Zap, Brain, Stethoscope, UserPlus, Mail, Lock, User, Eye, EyeOff, Heart } from 'lucide-react';
 import MetricsDisplay from '../MetricsDisplay';
 import { supabase } from '../../utils/supabaseClient';
 
@@ -227,7 +227,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
 
       {/* Left Side - Hero Section */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-red-600 via-red-700 to-red-800 relative overflow-hidden">
-        {/* Background Pattern */}
+        {/* Subtle animated heart background removed for a cleaner look */}
         {/* Removed decorative circles for a cleaner look */}
         
         {/* Content - Adjusted padding to avoid badge overlap */}
@@ -300,17 +300,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
           <div className="mt-12">
             <h3 className="text-lg font-semibold mb-4 text-red-100">Live System Performance</h3>
             <div className="grid grid-cols-3 gap-6">
-              <div className="text-center bg-white/10 rounded-lg p-4">
+              <div className="text-center bg-white/10 rounded-lg p-4 drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]">
                 <div className="text-3xl font-bold">{responseTime}min</div>
                 <div className="text-red-200 text-sm">Avg Response</div>
                 <div className="w-2 h-2 bg-green-400 rounded-full mx-auto mt-2 animate-pulse"></div>
               </div>
-              <div className="text-center bg-white/10 rounded-lg p-4">
+              <div className="text-center bg-white/10 rounded-lg p-4 drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]">
                 <div className="text-3xl font-bold">{aiAccuracy}%</div>
                 <div className="text-red-200 text-sm">AI Accuracy</div>
                 <div className="w-2 h-2 bg-green-400 rounded-full mx-auto mt-2 animate-pulse"></div>
               </div>
-              <div className="text-center bg-white/10 rounded-lg p-4">
+              <div className="text-center bg-white/10 rounded-lg p-4 drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]">
                 <div className="text-3xl font-bold">{activeUnits}</div>
                 <div className="text-red-200 text-sm">Active Units</div>
                 <div className="w-2 h-2 bg-green-400 rounded-full mx-auto mt-2 animate-pulse"></div>

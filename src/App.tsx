@@ -5,6 +5,7 @@ import BookAmbulanceScreen from './components/screens/BookAmbulanceScreen';
 import AIAssessmentScreen from './components/screens/AIAssessmentScreen';
 import HospitalsScreen from './components/screens/HospitalsScreen';
 import TrackingScreen from './components/screens/TrackingScreen';
+import TrackingScreenUserToHospital from './components/screens/TrackingScreenUserToHospital';
 import HistoryScreen from './components/screens/HistoryScreen';
 import DatabaseTestScreen from './components/screens/DatabaseTestScreen';
 import { EmergencyErrorBoundary } from './utils/errorBoundary';
@@ -165,6 +166,8 @@ function App() {
           return <HospitalsScreen updateState={updateState} />;
         case 'tracking':
           return <TrackingScreen updateState={updateState} />;
+        case 'userToHospitalTracking':
+          return <TrackingScreenUserToHospital updateState={updateState} selectedHospital={(window as any).state.selectedHospital} />;
         case 'history':
           return <HistoryScreen updateState={updateState} />;
         case 'database-test':
