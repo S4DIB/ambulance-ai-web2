@@ -141,47 +141,36 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
   const analyzeImages = async (images: Array<{file: File, preview: string}>) => {
     setIsAnalyzing(true);
     analytics.track('image_analysis_started', { imageCount: images.length });
-    
-    // Simulate AI analysis with realistic medical assessments
-    const medicalAnalyses = [
-      "Visible inflammation and redness consistent with acute dermatitis. Recommend topical treatment and monitoring.",
-      "Laceration appears superficial but may require cleaning and bandaging. Consider tetanus shot if not current.",
-      "Swelling and discoloration suggest possible contusion. Apply ice and elevate if possible.",
-      "Skin lesion shows irregular borders. Recommend dermatological evaluation for proper diagnosis.",
-      "Burn appears to be first-degree. Cool water treatment and aloe vera may provide relief.",
-      "Bruising pattern suggests impact injury. Monitor for increased pain or swelling.",
-      "Rash distribution indicates possible allergic reaction. Antihistamines may help.",
-      "Wound edges appear clean but deep. Professional medical cleaning and possible sutures needed."
-    ];
-    
-    setTimeout(() => {
-      const analyzedImages = images.map(img => ({
-        ...img,
-        analysis: medicalAnalyses[Math.floor(Math.random() * medicalAnalyses.length)]
-      }));
-      
-      setUploadedImages((prev: Array<{file: File, preview: string, analysis?: string}>) => {
-        const updated = [...prev];
-        analyzedImages.forEach(analyzed => {
-          const index = updated.findIndex(img => img.file.name === analyzed.file.name);
-          if (index !== -1) {
-            updated[index] = analyzed;
-          }
-        });
-        return updated;
+
+    // Use the new simulated medical image analysis
+    const results = await AIService.analyzeMedicalPhotos(images.map(img => img.file));
+
+    // Update uploadedImages with the simulated analysis
+    setUploadedImages((prev: Array<{file: File, preview: string, analysis?: string}>) => {
+      const updated = [...prev];
+      images.forEach((img, idx) => {
+        const result = results[idx];
+        const index = updated.findIndex(u => u.file.name === img.file.name);
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            analysis: `${result.detectedConditions[0]} (${result.severity}) - ${result.recommendations[0]}`
+          };
+        }
       });
-      
-      // Add analysis to symptoms
-      const analysisText = analyzedImages.map(img => `Photo Analysis: ${img.analysis}`).join(' ');
-      setSymptoms((prev: string) => prev + (prev ? '\n\n' : '') + analysisText);
-      
-      analytics.track('image_analysis_completed', { 
-        imageCount: images.length,
-        analysisLength: analysisText.length 
-      });
-      
-      setIsAnalyzing(false);
-    }, 2000 + Math.random() * 2000); // 2-4 seconds
+      return updated;
+    });
+
+    // Add analysis to symptoms
+    const analysisText = results.map(r => `Photo Analysis: ${r.detectedConditions[0]} (${r.severity}) - ${r.recommendations[0]}`).join(' ');
+    setSymptoms((prev: string) => prev + (prev ? '\n\n' : '') + analysisText);
+
+    analytics.track('image_analysis_completed', {
+      imageCount: images.length,
+      analysisLength: analysisText.length
+    });
+
+    setIsAnalyzing(false);
   };
 
   const removeImage = (index: number) => {

@@ -7,6 +7,28 @@ interface LoginScreenProps {
   updateState: (updates: any) => void;
 }
 
+// Add a helper for animated count-up
+function useCountUp(target: number, duration: number = 1200) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const increment = target / (duration / 16);
+    let raf: number;
+    function step() {
+      start += increment;
+      if (start < target) {
+        setValue(Math.round(start * 10) / 10);
+        raf = requestAnimationFrame(step);
+      } else {
+        setValue(target);
+      }
+    }
+    step();
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return value;
+}
+
 const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,6 +45,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
+
+  const responseTime = useCountUp(8.3);
+  const aiAccuracy = useCountUp(94.7);
+  const activeUnits = useCountUp(47);
 
   useEffect(() => {
     // Check for existing session on mount
@@ -202,31 +228,26 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
       {/* Left Side - Hero Section */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-red-600 via-red-700 to-red-800 relative overflow-hidden">
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-32 h-32 bg-white rounded-full"></div>
-          <div className="absolute top-40 right-32 w-24 h-24 bg-white rounded-full"></div>
-          <div className="absolute bottom-32 left-32 w-40 h-40 bg-white rounded-full"></div>
-          <div className="absolute bottom-20 right-20 w-28 h-28 bg-white rounded-full"></div>
-        </div>
+        {/* Removed decorative circles for a cleaner look */}
         
         {/* Content - Adjusted padding to avoid badge overlap */}
         <div className="relative z-10 flex flex-col justify-center px-12 text-white pt-20">
           <div className="mb-8">
-            <h1 className="text-5xl font-bold mb-6 leading-tight">
+            <h1 className="text-5xl font-bold mb-6 leading-tight text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]">
               Emergency Care
               <br />
-              <span className="text-red-200">Reimagined</span>
+              <span className="text-white">Reimagined</span>
             </h1>
             <p className="text-xl text-red-100 leading-relaxed mb-8">
-              Bangladesh's first AI-powered ambulance service. Fast, intelligent, and always there when you need us most.
+              <strong>AI-powered emergency medical web app transforming healthcare.</strong>
             </p>
           </div>
           
           {/* Features */}
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
-              <div className="bg-white/20 p-3 rounded-full">
-                <Zap className="h-6 w-6" />
+              <div className="bg-white/20 p-3 rounded-full animate-pulse">
+                <Zap className="h-6 w-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
               </div>
               <div>
                 <h3 className="font-semibold text-lg">AI-Powered Dispatch</h3>
@@ -235,8 +256,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="bg-white/20 p-3 rounded-full">
-                <Shield className="h-6 w-6" />
+              <div className="bg-white/20 p-3 rounded-full animate-pulse">
+                <Shield className="h-6 w-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Real-Time Tracking</h3>
@@ -245,8 +266,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="bg-white/20 p-3 rounded-full">
-                <Brain className="h-6 w-6" />
+              <div className="bg-white/20 p-3 rounded-full animate-pulse">
+                <Brain className="h-6 w-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
               </div>
               <div>
                 <h3 className="font-semibold text-lg">AI-Powered Hospital Matching</h3>
@@ -255,8 +276,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="bg-white/20 p-3 rounded-full">
-                <Stethoscope className="h-6 w-6" />
+              <div className="bg-white/20 p-3 rounded-full animate-pulse">
+                <Stethoscope className="h-6 w-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
               </div>
               <div>
                 <h3 className="font-semibold text-lg">AI Medical Assessment</h3>
@@ -265,8 +286,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="bg-white/20 p-3 rounded-full">
-                <Clock className="h-6 w-6" />
+              <div className="bg-white/20 p-3 rounded-full animate-pulse">
+                <Clock className="h-6 w-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
               </div>
               <div>
                 <h3 className="font-semibold text-lg">24/7 Availability</h3>
@@ -280,17 +301,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ updateState }) => {
             <h3 className="text-lg font-semibold mb-4 text-red-100">Live System Performance</h3>
             <div className="grid grid-cols-3 gap-6">
               <div className="text-center bg-white/10 rounded-lg p-4">
-                <div className="text-3xl font-bold">8.3min</div>
+                <div className="text-3xl font-bold">{responseTime}min</div>
                 <div className="text-red-200 text-sm">Avg Response</div>
                 <div className="w-2 h-2 bg-green-400 rounded-full mx-auto mt-2 animate-pulse"></div>
               </div>
               <div className="text-center bg-white/10 rounded-lg p-4">
-                <div className="text-3xl font-bold">94.7%</div>
+                <div className="text-3xl font-bold">{aiAccuracy}%</div>
                 <div className="text-red-200 text-sm">AI Accuracy</div>
                 <div className="w-2 h-2 bg-green-400 rounded-full mx-auto mt-2 animate-pulse"></div>
               </div>
               <div className="text-center bg-white/10 rounded-lg p-4">
-                <div className="text-3xl font-bold">47</div>
+                <div className="text-3xl font-bold">{activeUnits}</div>
                 <div className="text-red-200 text-sm">Active Units</div>
                 <div className="w-2 h-2 bg-green-400 rounded-full mx-auto mt-2 animate-pulse"></div>
               </div>

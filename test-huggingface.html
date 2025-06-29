@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Medical AI Models Test - All 4 Models</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            border-left: 4px solid #007bff;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .loading {
+            color: #007bff;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+            border-left-color: #dc3545;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+            border-left-color: #28a745;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        .header {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .step {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .model-card {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        .model-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .model-card p {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        .test-all-btn {
+            background: #28a745;
+            font-size: 16px;
+            padding: 15px 30px;
+            margin: 20px 0;
+        }
+        .test-all-btn:hover {
+            background: #218838;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background: #f2f2f2;
+            font-weight: bold;
+        }
+        .model-status {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏥 Medical AI Models Test</h1>
+        <p>Test all 4 medical AI models for image analysis</p>
+    </div>
+    
+    <div class="container">
+        <h3>�� Step 1: Enter Your API Key</h3>
+        <div class="step">
+            <strong>How to get API key:</strong><br>
+            1. Go to <a href="https://huggingface.co" target="_blank">huggingface.co</a><br>
+            2. Sign up/Login<br>
+            3. Go to Settings → Access Tokens<br>
+            4. Create new token with "Read" role<br>
+            5. Copy the token (starts with "hf_")
+        </div>
+        <input type="text" id="apiKey" placeholder="Enter your Hugging Face API key (hf_xxx...)" style="width: 100%;">
+        <button onclick="testAPIKey()">Test API Key</button>
+        <div id="apiResult"></div>
+    </div>
+
+    <div class="container">
+        <h3>🏥 Step 2: Medical Models Overview</h3>
+        <div class="model-grid">
+            <div class="model-card">
+                <h4>1. BiomedCLIP</h4>
+                <p><strong>Model:</strong> microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224</p>
+                <p><strong>Purpose:</strong> Medical image analysis</p>
+                <p><strong>Best for:</strong> Skin conditions, medical images</p>
+                <p><strong>Status:</strong> <span id="status1" class="model-status status-pending">Pending</span></p>
+            </div>
+            <div class="model-card">
+                <h4>2. Phikon</h4>
+                <p><strong>Model:</strong> owkin/phikon</p>
+                <p><strong>Purpose:</strong> Medical vision tasks</p>
+                <p><strong>Best for:</strong> Medical image classification</p>
+                <p><strong>Status:</strong> <span id="status2" class="model-status status-pending">Pending</span></p>
+            </div>
+            <div class="model-card">
+                <h4>3. DETR</h4>
+                <p><strong>Model:</strong> facebook/detr-resnet-50</p>
+                <p><strong>Purpose:</strong> Object detection</p>
+                <p><strong>Best for:</strong> Finding objects in medical images</p>
+                <p><strong>Status:</strong> <span id="status3" class="model-status status-pending">Pending</span></p>
+            </div>
+            <div class="model-card">
+                <h4>4. ViT (General)</h4>
+                <p><strong>Model:</strong> google/vit-base-patch16-224</p>
+                <p><strong>Purpose:</strong> General image classification</p>
+                <p><strong>Best for:</strong> Comparison baseline</p>
+                <p><strong>Status:</strong> <span id="status4" class="model-status status-pending">Pending</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>🧪 Step 3: Test All Models</h3>
+        <p>Test all 4 models with the same example image to compare results.</p>
+        <button onclick="testAllModels()" id="testAllBtn" class="test-all-btn">Test All 4 Models</button>
+        <div id="allModelsResult"></div>
+    </div>
+
+    <div class="container">
+        <h3>📸 Step 4: Test with Your Medical Image</h3>
+        <p>Upload your own medical image to test all models.</p>
+        <input type="file" id="imageInput" accept="image/*">
+        <button onclick="testAllModelsWithImage()" id="yourBtn">Test All Models with Your Image</button>
+        <div id="yourResult"></div>
+    </div>
+
+    <div class="container">
+        <h3>📊 Step 5: Results Comparison</h3>
+        <div id="comparisonTable"></div>
+    </div>
+
+    <div class="container">
+        <h3>�� Test Summary</h3>
+        <div id="summary"></div>
+    </div>
+
+    <script>
+        // Configuration
+        let API_KEY = '';
+        let testResults = {
+            apiKey: false,
+            model1: false,
+            model2: false,
+            model3: false,
+            model4: false,
+            custom: false
+        };
+
+        // Model configurations
+        const models = [
+            {
+                id: 1,
+                name: 'BiomedCLIP',
+                url: 'microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224',
+                description: 'Medical image analysis'
+            },
+            {
+                id: 2,
+                name: 'Phikon',
+                url: 'owkin/phikon',
+                description: 'Medical vision tasks'
+            },
+            {
+                id: 3,
+                name: 'DETR',
+                url: 'facebook/detr-resnet-50',
+                description: 'Object detection'
+            },
+            {
+                id: 4,
+                name: 'ViT (General)',
+                url: 'google/vit-base-patch16-224',
+                description: 'General classification'
+            }
+        ];
+
+        let modelResults = {};
+
+        // Utility function to convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Update model status
+        function updateModelStatus(modelId, status, message = '') {
+            const statusElement = document.getElementById(`status${modelId}`);
+            statusElement.className = `model-status status-${status}`;
+            
+            switch(status) {
+                case 'success':
+                    statusElement.textContent = '✅ Success';
+                    break;
+                case 'error':
+                    statusElement.textContent = '❌ Error';
+                    break;
+                case 'pending':
+                    statusElement.textContent = '⏳ Pending';
+                    break;
+                case 'loading':
+                    statusElement.textContent = '🔄 Testing...';
+                    break;
+            }
+        }
+
+        // Test API key
+        async function testAPIKey() {
+            const apiKeyInput = document.getElementById('apiKey');
+            const resultDiv = document.getElementById('apiResult');
+            const testAllBtn = document.getElementById('testAllBtn');
+            const yourBtn = document.getElementById('yourBtn');
+            
+            const newApiKey = apiKeyInput.value.trim();
+            if (!newApiKey) {
+                resultDiv.innerHTML = '<div class="result error">❌ Please enter an API key!</div>';
+                return;
+            }
+
+            if (!newApiKey.startsWith('hf_')) {
+                resultDiv.innerHTML = '<div class="result error">❌ API key should start with "hf_"</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="result loading">🔄 Testing API key...</div>';
+
+            try {
+                const response = await fetch(
+                    'https://api-inference.huggingface.co/models/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${newApiKey}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            inputs: 'http://images.cocodataset.org/val2017/000000039769.jpg'
+                        })
+                    }
+                );
+
+                if (response.status === 401) {
+                    throw new Error('Invalid API key');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Update the API key if test successful
+                API_KEY = newApiKey;
+                testResults.apiKey = true;
+                
+                // Enable other buttons
+                testAllBtn.disabled = false;
+                yourBtn.disabled = false;
+                
+                resultDiv.innerHTML = '<div class="result success">✅ API key is valid!\n\nAll medical models are ready to test.</div>';
+                updateSummary();
+
+            } catch (error) {
+                console.error('API key test failed:', error);
+                resultDiv.innerHTML = `<div class="result error">❌ API key test failed: ${error.message}</div>`;
+                testResults.apiKey = false;
+                updateSummary();
+            }
+        }
+
+        // Test single model
+        async function testModel(model) {
+            updateModelStatus(model.id, 'loading');
+            
+            try {
+                const response = await fetch(
+                    `https://api-inference.huggingface.co/models/${model.url}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${API_KEY}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            inputs: 'http://images.cocodataset.org/val2017/000000039769.jpg'
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log(`${model.name} response:`, data);
+
+                // Store results
+                modelResults[model.id] = {
+                    name: model.name,
+                    url: model.url,
+                    data: data,
+                    success: true
+                };
+
+                updateModelStatus(model.id, 'success');
+                testResults[`model${model.id}`] = true;
+                
+                return data;
+
+            } catch (error) {
+                console.error(`${model.name} test failed:`, error);
+                updateModelStatus(model.id, 'error');
+                testResults[`model${model.id}`] = false;
+                
+                modelResults[model.id] = {
+                    name: model.name,
+                    url: model.url,
+                    error: error.message,
+                    success: false
+                };
+                
+                return null;
+            }
+        }
+
+        // Test all models
+        async function testAllModels() {
+            if (!API_KEY) {
+                document.getElementById('allModelsResult').innerHTML = '<div class="result error">❌ Please test your API key first!</div>';
+                return;
+            }
+
+            const resultDiv = document.getElementById('allModelsResult');
+            const btn = document.getElementById('testAllBtn');
+            
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="result loading">🔄 Testing all 4 models...\n\nThis may take a few minutes as models load.</div>';
+
+            // Reset results
+            modelResults = {};
+            for (let i = 1; i <= 4; i++) {
+                testResults[`model${i}`] = false;
+                updateModelStatus(i, 'pending');
+            }
+
+            // Test all models sequentially
+            for (const model of models) {
+                await testModel(model);
+                // Small delay between requests
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            // Display results
+            let resultText = '✅ All Models Test Results:\n\n';
+            
+            for (const model of models) {
+                const result = modelResults[model.id];
+                if (result && result.success) {
+                    resultText += `🏥 ${model.name} (${model.url}):\n`;
+                    if (Array.isArray(result.data) && result.data.length > 0) {
+                        result.data.slice(0, 3).forEach((pred, index) => {
+                            resultText += `  ${index + 1}. ${pred.label} (${(pred.score * 100).toFixed(2)}%)\n`;
+                        });
+                    } else {
+                        resultText += `  Response: ${JSON.stringify(result.data)}\n`;
+                    }
+                    resultText += '\n';
+                } else {
+                    resultText += `❌ ${model.name}: Failed - ${result?.error || 'Unknown error'}\n\n`;
+                }
+            }
+
+            resultDiv.innerHTML = `<div class="result success">${resultText}</div>`;
+            updateComparisonTable();
+            updateSummary();
+            btn.disabled = false;
+        }
+
+        // Test all models with custom image
+        async function testAllModelsWithImage() {
+            if (!API_KEY) {
+                document.getElementById('yourResult').innerHTML = '<div class="result error">❌ Please test your API key first!</div>';
+                return;
+            }
+
+            const fileInput = document.getElementById('imageInput');
+            const resultDiv = document.getElementById('yourResult');
+            const btn = document.getElementById('yourBtn');
+
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<div class="result error">❌ Please select an image first!</div>';
+                return;
+            }
+
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="result loading">🔄 Analyzing your image with all 4 models...</div>';
+
+            try {
+                const file = fileInput.files[0];
+                const base64 = await fileToBase64(file);
+                const base64Data = base64.split(',')[1];
+
+                // Reset results
+                modelResults = {};
+                for (let i = 1; i <= 4; i++) {
+                    updateModelStatus(i, 'loading');
+                }
+
+                // Test all models with custom image
+                for (const model of models) {
+                    try {
+                        const response = await fetch(
+                            `https://api-inference.huggingface.co/models/${model.url}`,
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${API_KEY}`,
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    inputs: base64Data
+                                })
+                            }
+                        );
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        
+                        modelResults[model.id] = {
+                            name: model.name,
+                            url: model.url,
+                            data: data,
+                            success: true
+                        };
+
+                        updateModelStatus(model.id, 'success');
+                        testResults[`model${model.id}`] = true;
+
+                    } catch (error) {
+                        console.error(`${model.name} test failed:`, error);
+                        updateModelStatus(model.id, 'error');
+                        testResults[`model${model.id}`] = false;
+                        
+                        modelResults[model.id] = {
+                            name: model.name,
+                            url: model.url,
+                            error: error.message,
+                            success: false
+                        };
+                    }
+
+                    // Small delay between requests
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                // Display results
+                let resultText = '✅ Your Image Analysis Results:\n\n';
+                
+                for (const model of models) {
+                    const result = modelResults[model.id];
+                    if (result && result.success) {
+                        resultText += `🏥 ${model.name}:\n`;
+                        if (Array.isArray(result.data) && result.data.length > 0) {
+                            result.data.slice(0, 3).forEach((pred, index) => {
+                                resultText += `  ${index + 1}. ${pred.label} (${(pred.score * 100).toFixed(2)}%)\n`;
+                            });
+                        } else {
+                            resultText += `  Response: ${JSON.stringify(result.data)}\n`;
+                        }
+                        resultText += '\n';
+                    } else {
+                        resultText += `❌ ${model.name}: Failed - ${result?.error || 'Unknown error'}\n\n`;
+                    }
+                }
+
+                resultDiv.innerHTML = `<div class="result success">${resultText}</div>`;
+                updateComparisonTable();
+                updateSummary();
+                testResults.custom = true;
+
+            } catch (error) {
+                console.error('Custom image test failed:', error);
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+                testResults.custom = false;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Update comparison table
+        function updateComparisonTable() {
+            const tableDiv = document.getElementById('comparisonTable');
+            
+            if (Object.keys(modelResults).length === 0) {
+                tableDiv.innerHTML = '<div class="result">No test results available yet.</div>';
+                return;
+            }
+
+            let tableHTML = `
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Status</th>
+                            <th>Top Prediction</th>
+                            <th>Confidence</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const model of models) {
+                const result = modelResults[model.id];
+                if (result) {
+                    const status = result.success ? '✅ Success' : '❌ Failed';
+                    const topPrediction = result.success && Array.isArray(result.data) && result.data.length > 0 
+                        ? result.data[0].label 
+                        : (result.error || 'N/A');
+                    const confidence = result.success && Array.isArray(result.data) && result.data.length > 0 
+                        ? `${(result.data[0].score * 100).toFixed(2)}%` 
+                        : 'N/A';
+
+                    tableHTML += `
+                        <tr>
+                            <td><strong>${model.name}</strong></td>
+                            <td>${status}</td>
+                            <td>${topPrediction}</td>
+                            <td>${confidence}</td>
+                            <td>${model.description}</td>
+                        </tr>
+                    `;
+                }
+            }
+
+            tableHTML += '</tbody></table>';
+            tableDiv.innerHTML = tableHTML;
+        }
+
+        // Update summary
+        function updateSummary() {
+            const summaryDiv = document.getElementById('summary');
+            const totalTests = Object.keys(testResults).length;
+            const passedTests = Object.values(testResults).filter(Boolean).length;
+            
+            let summaryText = `🏥 Medical AI Test Summary:\n`;
+            summaryText += `API Key: ${testResults.apiKey ? '✅' : '❌'}\n`;
+            summaryText += `BiomedCLIP: ${testResults.model1 ? '✅' : '❌'}\n`;
+            summaryText += `Phikon: ${testResults.model2 ? '✅' : '❌'}\n`;
+            summaryText += `DETR: ${testResults.model3 ? '✅' : '❌'}\n`;
+            summaryText += `ViT (General): ${testResults.model4 ? '✅' : '❌'}\n`;
+            summaryText += `Custom Image: ${testResults.custom ? '✅' : '❌'}\n`;
+            summaryText += `\nOverall: ${passedTests}/${totalTests} tests passed`;
+            
+            if (passedTests === totalTests) {
+                summaryText += '\n🎉 All tests successful! Medical AI is ready.';
+            }
+            
+            summaryDiv.innerHTML = `<div class="result">${summaryText}</div>`;
+        }
+
+        // Auto-load API key from localStorage if available
+        window.onload = function() {
+            const savedKey = localStorage.getItem('huggingface_api_key');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+                API_KEY = savedKey;
+            }
+            
+            // Disable buttons until API key is tested
+            document.getElementById('testAllBtn').disabled = true;
+            document.getElementById('yourBtn').disabled = true;
+            
+            updateSummary();
+        };
+
+        // Save API key to localStorage when changed
+        document.getElementById('apiKey').addEventListener('change', function() {
+            const key = this.value.trim();
+            if (key.startsWith('hf_')) {
+                localStorage.setItem('huggingface_api_key', key);
+            }
+        });
+    </script>
+</body>
+</html>

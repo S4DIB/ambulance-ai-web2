@@ -28,6 +28,15 @@ export interface PhotoAnalysisResult {
   imageQuality: 'good' | 'poor' | 'unusable';
 }
 
+// Simulated medical image analysis for hackathon/demo
+export interface SimulatedPhotoAnalysisResult {
+  detectedConditions: string[];
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  confidence: number;
+  recommendations: string[];
+  imageQuality: 'good' | 'poor';
+}
+
 export class AIService {
   private static readonly OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
   private static readonly OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
@@ -264,70 +273,50 @@ Provide medical triage analysis in JSON format.`
     }
   }
 
-  // Analyze medical photos using Google Cloud Vision API
-  static async analyzeMedicalPhotos(files: File[]): Promise<PhotoAnalysisResult[]> {
-    if (!this.GOOGLE_CLOUD_API_KEY) {
-      throw new Error('Google Cloud API key not configured');
-    }
+  // Simulated medical image analysis for hackathon/demo
+  static async analyzeMedicalPhotosSimulated(files: File[]): Promise<SimulatedPhotoAnalysisResult[]> {
+    const possibleConditions = [
+      { label: 'Skin Rash', severity: 'low', rec: 'Apply moisturizer and monitor for changes.' },
+      { label: 'Burn (First Degree)', severity: 'medium', rec: 'Cool with water, avoid sun, seek care if worsens.' },
+      { label: 'Laceration', severity: 'medium', rec: 'Clean wound, apply sterile dressing, seek stitches if deep.' },
+      { label: 'Bruise/Contusion', severity: 'low', rec: 'Apply ice, elevate, monitor for swelling.' },
+      { label: 'Possible Infection', severity: 'high', rec: 'Monitor for fever, redness, seek medical attention.' },
+      { label: 'Fracture Suspected', severity: 'critical', rec: 'Immobilize, seek emergency care immediately.' },
+      { label: 'Normal Skin', severity: 'low', rec: 'No abnormality detected.' }
+    ];
 
-    const results: PhotoAnalysisResult[] = [];
+    return files.map(file => {
+      // Use filename to bias the result (for demo)
+      const name = file.name.toLowerCase();
+      let condition = possibleConditions[Math.floor(Math.random() * possibleConditions.length)];
 
-    for (const file of files) {
-      try {
-        // Convert file to base64
-        const base64 = await this.fileToBase64(file);
-        
-        const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${this.GOOGLE_CLOUD_API_KEY}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            requests: [
-              {
-                image: {
-                  content: base64.split(',')[1]
-                },
-                features: [
-                  {
-                    type: 'LABEL_DETECTION',
-                    maxResults: 10
-                  },
-                  {
-                    type: 'TEXT_DETECTION',
-                    maxResults: 5
-                  },
-                  {
-                    type: 'OBJECT_LOCALIZATION',
-                    maxResults: 10
-                  }
-                ]
-              }
-            ]
-          })
-        });
+      if (name.includes('rash')) condition = possibleConditions[0];
+      if (name.includes('burn')) condition = possibleConditions[1];
+      if (name.includes('cut') || name.includes('laceration')) condition = possibleConditions[2];
+      if (name.includes('bruise')) condition = possibleConditions[3];
+      if (name.includes('infect')) condition = possibleConditions[4];
+      if (name.includes('fracture') || name.includes('xray')) condition = possibleConditions[5];
+      if (name.includes('normal')) condition = possibleConditions[6];
 
-        if (!response.ok) {
-          throw new Error(`Google Vision API error: ${response.status}`);
-        }
+      // Simulate confidence and image quality
+      const confidence = Math.floor(70 + Math.random() * 30); // 70-100%
+      const imageQuality = file.size > 500000 ? 'good' : 'poor';
 
-        const data = await response.json();
-        const analysis = this.processVisionResults(data, file);
-        results.push(analysis);
+      return {
+        detectedConditions: [condition.label],
+        severity: condition.severity as 'low' | 'medium' | 'high' | 'critical',
+        confidence,
+        recommendations: [condition.rec],
+        imageQuality
+      };
+    });
+  }
 
-      } catch (error) {
-        console.error('Photo analysis failed:', error);
-        results.push({
-          detectedConditions: [],
-          severity: 'low',
-          confidence: 0,
-          recommendations: ['Unable to analyze image'],
-          imageQuality: 'poor'
-        });
-      }
-    }
-
-    return results;
+  // Replace the real photo analysis with the simulated one for demo
+  static async analyzeMedicalPhotos(files: File[]): Promise<SimulatedPhotoAnalysisResult[]> {
+    // Add a small delay to simulate processing
+    await new Promise(res => setTimeout(res, 1200 + Math.random() * 800));
+    return this.analyzeMedicalPhotosSimulated(files);
   }
 
   // Enhanced analysis combining symptoms and photos
