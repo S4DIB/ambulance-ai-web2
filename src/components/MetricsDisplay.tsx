@@ -36,7 +36,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
               <p className="text-green-100 text-xs sm:text-sm">Response Time</p>
               <p className="text-xl sm:text-2xl font-bold">{metrics.avgResponseTime.toFixed(1)}min</p>
             </div>
-            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-green-200" />
+            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-green-200 animate-pulse" />
           </div>
         </div>
 
@@ -46,7 +46,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
               <p className="text-blue-100 text-xs sm:text-sm">AI Accuracy</p>
               <p className="text-xl sm:text-2xl font-bold">{metrics.aiAccuracy.toFixed(1)}%</p>
             </div>
-            <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200" />
+            <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200 animate-pulse" />
           </div>
         </div>
 
@@ -56,7 +56,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
               <p className="text-purple-100 text-xs sm:text-sm">Active Units</p>
               <p className="text-xl sm:text-2xl font-bold">{metrics.activeAmbulances}</p>
             </div>
-            <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-purple-200" />
+            <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-purple-200 animate-pulse" />
           </div>
         </div>
 
@@ -66,7 +66,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
               <p className="text-red-100 text-xs sm:text-sm">Lives Saved</p>
               <p className="text-xl sm:text-2xl font-bold">{metrics.liveSaves}</p>
             </div>
-            <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-red-200" />
+            <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-red-200 animate-pulse" />
           </div>
         </div>
       </div>
@@ -79,7 +79,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
         {/* AI Performance Metrics */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <Brain className="h-5 w-5 mr-2 text-purple-600" />
+            <Brain className="h-5 w-5 mr-2 text-purple-600 animate-pulse" />
             AI Model Performance
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -142,7 +142,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
         {/* Operational Metrics */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <Activity className="h-5 w-5 mr-2 text-blue-600" />
+            <Activity className="h-5 w-5 mr-2 text-blue-600 animate-pulse" />
             Live Operational Data
             {showLive && <span className="ml-2 w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>}
           </h3>
@@ -169,7 +169,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
         {/* Performance Trends */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+            <TrendingUp className="h-5 w-5 mr-2 text-green-600 animate-pulse" />
             Performance Trends
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -220,7 +220,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 sm:p-6 text-white">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm sm:text-lg font-semibold">Response Time</h3>
-          <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200" />
+          <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200 animate-pulse" />
         </div>
         <p className="text-2xl sm:text-3xl font-bold">{metrics.avgResponseTime.toFixed(1)} min</p>
         <p className="text-blue-100 text-xs sm:text-sm">Average citywide</p>
@@ -233,7 +233,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
       <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 sm:p-6 text-white">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm sm:text-lg font-semibold">Success Rate</h3>
-          <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-200" />
+          <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-200 animate-pulse" />
         </div>
         <p className="text-2xl sm:text-3xl font-bold">{metrics.successRate.toFixed(1)}%</p>
         <p className="text-green-100 text-xs sm:text-sm">Emergency outcomes</p>
@@ -242,7 +242,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
       <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 sm:p-6 text-white">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm sm:text-lg font-semibold">AI Accuracy</h3>
-          <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-purple-200" />
+          <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-purple-200 animate-pulse" />
         </div>
         <p className="text-2xl sm:text-3xl font-bold">{metrics.aiAccuracy.toFixed(1)}%</p>
         <p className="text-purple-100 text-xs sm:text-sm">Diagnosis precision</p>
@@ -251,7 +251,7 @@ const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
       <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-4 sm:p-6 text-white">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm sm:text-lg font-semibold">Lives Saved</h3>
-          <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-red-200" />
+          <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-red-200 animate-pulse" />
         </div>
         <p className="text-2xl sm:text-3xl font-bold">{metrics.liveSaves}</p>
         <p className="text-red-100 text-xs sm:text-sm">Today</p>

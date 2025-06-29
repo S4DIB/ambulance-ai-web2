@@ -114,11 +114,25 @@ const Navigation: React.FC<NavigationProps> = ({ activeScreen, onScreenChange, b
               <div className="flex items-center space-x-1">
                 {navItems.map((item) => {
                   const Icon = item.icon;
-                  
                   return (
                     <button
                       key={item.id}
-                      onClick={() => onScreenChange(item.id)}
+                      onClick={() => {
+                        if (item.id === 'tracking') {
+                          const trackingPhase = (window as any).state.trackingPhase;
+                          if (bookingStatus !== 'none') {
+                            if (trackingPhase === 'userToHospital') {
+                              onScreenChange('userToHospitalTracking');
+                            } else {
+                              onScreenChange('tracking');
+                            }
+                          } else {
+                            onScreenChange('home');
+                          }
+                        } else {
+                          onScreenChange(item.id);
+                        }
+                      }}
                       className={getButtonStyle(item.id)}
                     >
                       <Icon className="h-4 w-4" />
@@ -183,26 +197,38 @@ const Navigation: React.FC<NavigationProps> = ({ activeScreen, onScreenChange, b
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeScreen === item.id;
-              
               return (
                 <button
                   key={item.id}
                   onClick={() => {
-                    onScreenChange(item.id);
+                    if (item.id === 'tracking') {
+                      const trackingPhase = (window as any).state.trackingPhase;
+                      if (bookingStatus !== 'none') {
+                        if (trackingPhase === 'userToHospital') {
+                          onScreenChange('userToHospitalTracking');
+                        } else {
+                          onScreenChange('tracking');
+                        }
+                      } else {
+                        onScreenChange('home');
+                      }
+                    } else {
+                      onScreenChange(item.id);
+                    }
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`
-                    flex items-center space-x-3 w-full px-3 py-3 rounded-md text-base font-medium transition-all duration-200 relative
+                  className={
+                    `flex items-center space-x-3 w-full px-3 py-3 rounded-md text-base font-medium transition-all duration-200 relative
                     ${isActive 
                       ? 'bg-red-500 text-white' 
                       : 'text-gray-600 hover:text-red-600 hover:bg-red-100'
-                    }
-                  `}
+                    }`
+                  }
                 >
                   <Icon className="h-5 w-5" />
                   <span>{item.label}</span>
                   {item.id === 'tracking' && ['dispatched', 'enroute'].includes(bookingStatus) && (
-                    <div className="absolute right-3 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1"></div>
                   )}
                 </button>
               );

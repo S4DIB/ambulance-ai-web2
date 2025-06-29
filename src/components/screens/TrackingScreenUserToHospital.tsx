@@ -14,11 +14,19 @@ interface TrackingScreenUserToHospitalProps {
 
 const TrackingScreenUserToHospital: React.FC<TrackingScreenUserToHospitalProps> = ({ updateState, selectedHospital }) => {
   const { t } = useTranslation();
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [routeProgress, setRouteProgress] = useState(0); // 0 to 100
-  const [etaMinutes, setEtaMinutes] = useState(15); // Simulated ETA
-  const [isArrived, setIsArrived] = useState(false);
+  // Initialize from global state if available
+  const initialProgress = (window as any).state.userToHospitalRouteProgress ?? 0;
+  const initialEta = (window as any).state.userToHospitalEtaMinutes ?? 15;
+  const [routeProgress, setRouteProgress] = useState(initialProgress); // 0 to 100
+  const [etaMinutes, setEtaMinutes] = useState(initialEta); // Simulated ETA
+  const [isArrived, setIsArrived] = useState(routeProgress >= 100);
   const [liveMetrics, setLiveMetrics] = useState(metricsSimulator.getLiveOperationalData());
+
+  // Persist progress and ETA to global state
+  useEffect(() => {
+    (window as any).state.userToHospitalRouteProgress = routeProgress;
+    (window as any).state.userToHospitalEtaMinutes = etaMinutes;
+  }, [routeProgress, etaMinutes]);
 
   // Simulate route progress from user to hospital
   useEffect(() => {
@@ -35,8 +43,7 @@ const TrackingScreenUserToHospital: React.FC<TrackingScreenUserToHospitalProps> 
   }, [isArrived]);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    setLiveMetrics(metricsSimulator.getLiveOperationalData());
+    const timer = setInterval(() => setLiveMetrics(metricsSimulator.getLiveOperationalData()), 1000);
     return () => clearInterval(timer);
   }, []);
 

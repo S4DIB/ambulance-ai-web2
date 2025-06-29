@@ -351,7 +351,7 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
                     onClick={() => {
                       setSelectedHospital(hospital);
                       setShowHospitalSelect(false);
-                      updateState({ currentPage: 'userToHospitalTracking', selectedHospital: hospital });
+                      updateState({ currentPage: 'userToHospitalTracking', selectedHospital: hospital, trackingPhase: 'userToHospital' });
                     }}
                     className="mt-2 w-full bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold py-2 md:py-2.5 shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
