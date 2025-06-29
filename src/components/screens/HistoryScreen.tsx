@@ -3,6 +3,7 @@ import { History, Calendar, MapPin, Clock, FileText, Download, Brain, Truck, Men
 import { EmergencyAPI, ScheduledAmbulanceAPI } from '../../utils/emergencyAPI';
 import { EmergencyRequest } from '../../utils/supabaseClient';
 import { ScheduledAmbulanceRequest } from '../../utils/emergencyAPI';
+import { AIAssessmentAPI } from '../../utils/emergencyAPI';
 
 interface HistoryScreenProps {
   updateState: (updates: any) => void;
@@ -13,7 +14,9 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ updateState }) => {
   const [selectedTab, setSelectedTab] = useState('requests');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [ambulanceHistory, setAmbulanceHistory] = useState<any[]>([]);
+  const [assessmentHistory, setAssessmentHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingAssessments, setLoadingAssessments] = useState(true);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -68,38 +71,36 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ updateState }) => {
     fetchHistory();
   }, [state.currentUser]);
 
-  const assessmentHistory = state.assessmentHistory?.length > 0 ? state.assessmentHistory : [
-    {
-      id: 1,
-      date: "2024-01-20",
-      time: "16:45",
-      symptoms: "Chest pain, shortness of breath, dizziness",
-      recommendation: "Seek immediate medical attention - High urgency",
-      urgencyScore: 85,
-      triageLevel: 2,
-      followed: "Yes - Ambulance booked immediately"
-    },
-    {
-      id: 2,
-      date: "2024-01-18",
-      time: "10:30",
-      symptoms: "Mild headache, fatigue",
-      recommendation: "Monitor symptoms, consider routine checkup",
-      urgencyScore: 25,
-      triageLevel: 5,
-      followed: "No - Symptoms resolved naturally"
-    },
-    {
-      id: 3,
-      date: "2024-01-12",
-      time: "14:15",
-      symptoms: "Severe abdominal pain, nausea",
-      recommendation: "Seek medical care within 2-4 hours",
-      urgencyScore: 70,
-      triageLevel: 3,
-      followed: "Yes - Visited emergency room"
-    }
-  ];
+  useEffect(() => {
+    const fetchAssessments = async () => {
+      setLoadingAssessments(true);
+      try {
+        const currentUser = state.currentUser;
+        if (!currentUser || !currentUser.id) {
+          setAssessmentHistory([]);
+          setLoadingAssessments(false);
+          return;
+        }
+        const assessments = await AIAssessmentAPI.getUserAssessments(currentUser.id);
+        // Map DB fields to UI fields
+        const mapped = assessments.map((a: any) => ({
+          id: a.id,
+          date: a.created_at ? a.created_at.split('T')[0] : '',
+          time: a.created_at ? a.created_at.split('T')[1]?.slice(0,5) : '',
+          symptoms: a.symptoms,
+          recommendation: Array.isArray(a.recommendations) ? a.recommendations[0] : '',
+          urgencyScore: a.urgency_score,
+          triageLevel: a.triage_level,
+        }));
+        setAssessmentHistory(mapped.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time)));
+      } catch (error) {
+        setAssessmentHistory([]);
+      } finally {
+        setLoadingAssessments(false);
+      }
+    };
+    fetchAssessments();
+  }, [state.currentUser]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -310,7 +311,12 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ updateState }) => {
             </button>
           </div>
 
-          {assessmentHistory.length === 0 ? (
+          {loadingAssessments ? (
+            <div className="text-center py-8 sm:py-12 bg-white rounded-xl shadow-lg">
+              <Brain className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Loading AI assessments...</h3>
+            </div>
+          ) : assessmentHistory.length === 0 ? (
             <div className="text-center py-8 sm:py-12 bg-white rounded-xl shadow-lg">
               <Brain className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No AI assessments yet</h3>

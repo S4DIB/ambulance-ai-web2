@@ -14,41 +14,45 @@ import { registerServiceWorker, PerformanceMonitor } from './utils/performanceOp
 import { supabase } from './utils/supabaseClient';
 
 // Initialize Bolt state
-if (typeof window !== 'undefined' && !window.state) {
-  window.state = {
-    // Current screen/page
-    currentPage: "home",
-    
-    // User authentication
-    isLoggedIn: false,
-    
-    // Language preference
-    language: "en",
-    
-    // Booking data
-    bookingStatus: "none", // none, requested, dispatched, enroute, arrived
-    pickupLocation: "",
-    symptoms: "",
-    triageLevel: null, // 1 to 5
-    urgencyScore: null, // 0 to 100
-    matchedHospitals: [], // array of hospital objects
-    
-    // Ambulance tracking
-    ambulancePosition: 0, // 0 to 100 (% along route)
-    etaMinutes: 5,
-    
-    // Additional state for better UX
-    patientName: "",
-    contactNumber: "",
-    emergencyType: "",
-    assessmentResponses: [],
-    bookingHistory: [],
-    assessmentHistory: [],
-    
-    // Video call state
-    isVideoCallActive: false,
-    videoCallType: 'emergency' // 'emergency' | 'consultation'
-  };
+if (typeof window !== 'undefined') {
+  // Load from localStorage if available
+  const savedState = localStorage.getItem('rescufast_state');
+  if (!(window as any).state) {
+    (window as any).state = savedState ? JSON.parse(savedState) : {
+      // Current screen/page
+      currentPage: "home",
+      
+      // User authentication
+      isLoggedIn: false,
+      
+      // Language preference
+      language: "en",
+      
+      // Booking data
+      bookingStatus: "none", // none, requested, dispatched, enroute, arrived
+      pickupLocation: "",
+      symptoms: "",
+      triageLevel: null, // 1 to 5
+      urgencyScore: null, // 0 to 100
+      matchedHospitals: [], // array of hospital objects
+      
+      // Ambulance tracking
+      ambulancePosition: 0, // 0 to 100 (% along route)
+      etaMinutes: 5,
+      
+      // Additional state for better UX
+      patientName: "",
+      contactNumber: "",
+      emergencyType: "",
+      assessmentResponses: [],
+      bookingHistory: [],
+      assessmentHistory: [],
+      
+      // Video call state
+      isVideoCallActive: false,
+      videoCallType: 'emergency' // 'emergency' | 'consultation'
+    };
+  }
 
   // Initialize offline storage and analytics
   offlineStorage.init().catch(console.error);
@@ -81,6 +85,8 @@ if (typeof window !== 'undefined' && !window.state) {
   };
 
   testDatabaseConnection();
+
+  console.log('App loaded. Initial state:', (window as any).state);
 }
 
 function App() {
@@ -93,8 +99,27 @@ function App() {
   }, []);
 
   const updateState = async (updates: any) => {
-    const oldState = { ...window.state };
-    Object.assign(window.state, updates);
+    const oldState = { ...(window as any).state };
+    Object.assign((window as any).state, updates);
+    // Persist state to localStorage
+    localStorage.setItem('rescufast_state', JSON.stringify((window as any).state));
+    // Debug log
+    console.log('State after update:', (window as any).state);
+    // Log stack trace for all updateState calls
+    console.trace('updateState called with:', updates);
+    // Log currentPage changes
+    if (updates.currentPage && oldState.currentPage !== updates.currentPage) {
+      console.log(`currentPage changed from '${oldState.currentPage}' to '${updates.currentPage}'`, { oldState, updates, newState: (window as any).state });
+    }
+    // Warn and trace if currentPage is set to home or assessment unexpectedly (not on initial load or logout)
+    if (
+      (updates.currentPage === 'home' || updates.currentPage === 'assessment') &&
+      oldState.currentPage !== updates.currentPage &&
+      !(updates.isLoggedIn === false) // allow on logout
+    ) {
+      console.warn('Warning: currentPage was set to', updates.currentPage, 'unexpectedly!', updates, oldState);
+      console.trace('Stack trace for unexpected navigation:');
+    }
     
     // Save critical state changes offline
     if (updates.bookingStatus || updates.triageLevel || updates.urgencyScore) {
@@ -127,12 +152,14 @@ function App() {
 
   const renderScreen = () => {
     try {
-      switch (window.state.currentPage) {
+      switch ((window as any).state.currentPage) {
         case 'home':
           return <HomeScreen updateState={updateState} />;
         case 'book':
           return <BookAmbulanceScreen updateState={updateState} />;
         case 'assessment':
+          return <AIAssessmentScreen updateState={updateState} />;
+        case 'assessmentResult':
           return <AIAssessmentScreen updateState={updateState} />;
         case 'hospitals':
           return <HospitalsScreen updateState={updateState} />;
@@ -145,10 +172,10 @@ function App() {
         default:
           return <HomeScreen updateState={updateState} />;
       }
-    } catch (error) {
+    } catch (error: any) {
       // Log error and show fallback
       analytics.track('screen_render_error', {
-        screen: window.state.currentPage,
+        screen: (window as any).state?.currentPage,
         error: error.message
       });
       throw error; // Let ErrorBoundary handle it

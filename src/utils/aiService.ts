@@ -39,6 +39,48 @@ export class AIService {
     return Array.isArray(val) ? val : val ? [val] : [];
   }
 
+  // Robust JSON parse: tries to fix common LLM mistakes
+  private static robustJsonParse(content: string): any {
+    try {
+      return JSON.parse(content);
+    } catch (e1) {
+      // Try to fix single quotes to double quotes
+      let fixed = content.replace(/'/g, '"');
+      try {
+        return JSON.parse(fixed);
+      } catch (e2) {
+        // Try to fix unquoted property names (very basic, not perfect)
+        fixed = fixed.replace(/([{,\s])(\w+):/g, '$1"$2":');
+        try {
+          return JSON.parse(fixed);
+        } catch (e3) {
+          console.error('Robust JSON parse failed:', {content, e1, e2, e3});
+          throw e3;
+        }
+      }
+    }
+  }
+
+  // Utility to map snake_case keys to camelCase
+  private static mapSnakeToCamel(obj: any): any {
+    if (!obj || typeof obj !== 'object') return obj;
+    const map: Record<string, string> = {
+      'triage_level': 'triageLevel',
+      'urgency_score': 'urgencyScore',
+      'confidence_level': 'confidence',
+      'specific_recommendations': 'recommendations',
+      'risk_factors': 'riskFactors',
+      'suggested_medical_specialties': 'suggestedSpecialties',
+      'immediate_actions_needed': 'immediateActions',
+    };
+    const result: any = {};
+    for (const key in obj) {
+      const camelKey = map[key] || key;
+      result[camelKey] = obj[key];
+    }
+    return result;
+  }
+
   // Determine which provider to use
   private static getProvider() {
     if (this.OPENROUTER_API_KEY) return 'openrouter';
@@ -104,7 +146,26 @@ Provide medical triage analysis in JSON format.`
         if (content.startsWith('```')) {
           content = content.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '').trim();
         }
-        const analysis = JSON.parse(content);
+        console.log('Raw AI response:', content); // Log for debugging
+        let analysis;
+        try {
+          analysis = AIService.robustJsonParse(content);
+          // Map snake_case keys to camelCase
+          analysis = AIService.mapSnakeToCamel(analysis);
+        } catch (err) {
+          console.error('AI analysis failed: Could not robustly parse JSON:', err, content);
+          throw err;
+        }
+        // If required fields are missing, use fallback
+        if (
+          analysis.triageLevel === undefined ||
+          analysis.urgencyScore === undefined ||
+          analysis.confidence === undefined ||
+          !analysis.recommendations
+        ) {
+          console.warn('AI response missing required fields, using fallback analysis.', analysis);
+          analysis = AIService.fallbackAnalysis(symptoms);
+        }
         return {
           triageLevel: analysis.triageLevel,
           urgencyScore: analysis.urgencyScore,
@@ -163,7 +224,26 @@ Provide medical triage analysis in JSON format.`
         if (content.startsWith('```')) {
           content = content.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '').trim();
         }
-        const analysis = JSON.parse(content);
+        console.log('Raw AI response:', content); // Log for debugging
+        let analysis;
+        try {
+          analysis = AIService.robustJsonParse(content);
+          // Map snake_case keys to camelCase
+          analysis = AIService.mapSnakeToCamel(analysis);
+        } catch (err) {
+          console.error('AI analysis failed: Could not robustly parse JSON:', err, content);
+          throw err;
+        }
+        // If required fields are missing, use fallback
+        if (
+          analysis.triageLevel === undefined ||
+          analysis.urgencyScore === undefined ||
+          analysis.confidence === undefined ||
+          !analysis.recommendations
+        ) {
+          console.warn('AI response missing required fields, using fallback analysis.', analysis);
+          analysis = AIService.fallbackAnalysis(symptoms);
+        }
         return {
           triageLevel: analysis.triageLevel,
           urgencyScore: analysis.urgencyScore,

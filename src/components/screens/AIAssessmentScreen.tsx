@@ -4,6 +4,7 @@ import { analytics } from '../../utils/analytics';
 import { ImageOptimizer } from '../../utils/performanceOptimizer';
 import { useTranslation } from '../../utils/translations';
 import { AIService } from '../../utils/aiService';
+import { AIAssessmentAPI } from '../../utils/emergencyAPI';
 
 interface AIAssessmentScreenProps {
   updateState: (updates: any) => void;
@@ -265,6 +266,24 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
         processingTime: aiResult.processingTime
       };
       analytics.trackAIAssessment(assessmentData);
+      // Save to database if user is logged in
+      const currentUser = (window as any).state.currentUser;
+      if (currentUser && currentUser.id) {
+        try {
+          await AIAssessmentAPI.saveAssessment({
+            user_id: currentUser.id,
+            symptoms,
+            photos: [], // You can add photo URLs if you upload them
+            triage_level: aiResult.triageLevel,
+            urgency_score: aiResult.urgencyScore,
+            ai_confidence: aiResult.confidence,
+            recommendations: aiResult.recommendations,
+          });
+          console.log('✅ AI assessment saved to database');
+        } catch (err) {
+          console.warn('❌ Failed to save AI assessment to database:', err);
+        }
+      }
       console.log('📊 Updating state with AI results...');
       updateState({
         triageLevel: aiResult.triageLevel,
@@ -333,7 +352,14 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
 
   // Assessment Result Screen
   if (state.currentPage === 'assessmentResult') {
-    const recommendation = getRecommendation(state.triageLevel, state.urgencyScore);
+    // Use safe defaults for all fields
+    const triageLevel = state.triageLevel ?? 3;
+    const urgencyScore = state.urgencyScore ?? 50;
+    const aiConfidence = state.aiConfidence ?? 50;
+    const aiRecommendations = Array.isArray(state.aiRecommendations) ? state.aiRecommendations : [];
+    const aiRiskFactors = Array.isArray(state.aiRiskFactors) ? state.aiRiskFactors : [];
+    const aiModel = state.aiModel ?? 'AI Model';
+    const recommendation = getRecommendation(triageLevel, urgencyScore);
     
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -354,8 +380,8 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <div className="text-center">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Triage Level</h3>
-              <div className={`inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full text-xl sm:text-2xl font-bold ${getTriageColor(state.triageLevel)}`}>
-                {state.triageLevel}
+              <div className={`inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full text-xl sm:text-2xl font-bold ${getTriageColor(triageLevel)}`}>
+                {triageLevel}
               </div>
               <p className="text-xs sm:text-sm text-gray-600 mt-2">Priority Level (1-5)</p>
             </div>
@@ -363,7 +389,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
             <div className="text-center">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Urgency Score</h3>
               <div className="text-3xl sm:text-4xl font-bold mb-2">
-                <span className={getUrgencyColor(state.urgencyScore)}>{state.urgencyScore}</span>
+                <span className={getUrgencyColor(urgencyScore)}>{urgencyScore}</span>
                 <span className="text-gray-400 text-xl sm:text-2xl">/100</span>
               </div>
               <p className="text-xs sm:text-sm text-gray-600">AI-calculated urgency</p>
@@ -372,7 +398,7 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
             <div className="text-center">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Recommended Hospital Type</h3>
               <div className="bg-blue-100 text-blue-800 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base">
-                {getHospitalType(state.triageLevel)}
+                {getHospitalType(triageLevel)}
               </div>
               <p className="text-xs sm:text-sm text-gray-600 mt-2">Best suited for your needs</p>
             </div>
@@ -397,13 +423,13 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
           )}
 
           {/* AI Analysis Details */}
-          {state.aiConfidence && (
+          {aiConfidence && (
             <div className="bg-blue-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 className="text-base sm:text-lg font-semibold text-blue-900">AI Analysis Details</h3>
                 <div className="flex items-center text-sm text-blue-700">
                   <Brain className="h-4 w-4 mr-2" />
-                  {state.aiModel || 'GPT-4'}
+                  {aiModel}
                 </div>
               </div>
               
@@ -414,18 +440,18 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                     <div className="w-full bg-blue-200 rounded-full h-2 mr-3">
                       <div 
                         className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${state.aiConfidence}%` }}
+                        style={{ width: `${aiConfidence}%` }}
                       ></div>
                     </div>
-                    <span className="text-sm font-semibold text-blue-800">{state.aiConfidence}%</span>
+                    <span className="text-sm font-semibold text-blue-800">{aiConfidence}%</span>
                   </div>
                 </div>
                 
-                {state.aiRecommendations && state.aiRecommendations.length > 0 && (
+                {aiRecommendations && aiRecommendations.length > 0 && (
                   <div>
                     <h4 className="text-sm font-semibold text-blue-800 mb-2">AI Recommendations</h4>
                     <ul className="text-sm text-blue-700 space-y-1">
-                      {state.aiRecommendations.slice(0, 3).map((rec: string, index: number) => (
+                      {aiRecommendations.slice(0, 3).map((rec: string, index: number) => (
                         <li key={index} className="flex items-start">
                           <span className="text-blue-600 mr-2">•</span>
                           {rec}
@@ -435,11 +461,11 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
                   </div>
                 )}
                 
-                {state.aiRiskFactors && state.aiRiskFactors.length > 0 && (
+                {aiRiskFactors && aiRiskFactors.length > 0 && (
                   <div>
                     <h4 className="text-sm font-semibold text-orange-800 mb-2">Risk Factors</h4>
                     <ul className="text-sm text-orange-700 space-y-1">
-                      {state.aiRiskFactors.slice(0, 3).map((risk: string, index: number) => (
+                      {aiRiskFactors.slice(0, 3).map((risk: string, index: number) => (
                         <li key={index} className="flex items-start">
                           <span className="text-orange-600 mr-2">⚠</span>
                           {risk}
@@ -485,8 +511,8 @@ const AIAssessmentScreen: React.FC<AIAssessmentScreenProps> = ({ updateState }) 
               onClick={() => {
                 analytics.track('assessment_action_clicked', { 
                   action: recommendation.action,
-                  triageLevel: state.triageLevel,
-                  urgencyScore: state.urgencyScore 
+                  triageLevel: triageLevel,
+                  urgencyScore: urgencyScore 
                 });
                 updateState({ currentPage: recommendation.action === 'Book Ambulance' ? 'book' : 'hospitals' });
               }}
