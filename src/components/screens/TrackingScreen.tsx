@@ -5,6 +5,7 @@ import { analytics } from '../../utils/analytics';
 import MetricsDisplay from '../MetricsDisplay';
 import { metricsSimulator } from '../../utils/metricsData';
 import { HospitalAPI } from '../../utils/emergencyAPI';
+import MapDemo from './MapDemo';
 
 interface TrackingScreenProps {
   updateState: (updates: any) => void;
@@ -25,6 +26,37 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
   const [showHospitalSelect, setShowHospitalSelect] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState<any>(null);
   const [hospitalOptions, setHospitalOptions] = useState<any[]>([]);
+
+  // Set up a 30-second timer for ambulance progress and progress bars
+  const TRACKING_DURATION = 30 * 1000; // 30 seconds
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (state.bookingStatus === 'enroute') {
+      if (!state.trackingStartTime) {
+        state.trackingStartTime = Date.now();
+      }
+      timer = setInterval(() => setNow(Date.now()), 100);
+    }
+    return () => clearInterval(timer);
+  }, [state.bookingStatus]);
+
+  // Calculate progress based on elapsed time
+  let ambulancePosition = state.ambulancePosition;
+  let etaMinutes = state.etaMinutes;
+  if (state.bookingStatus === 'enroute' && state.trackingStartTime) {
+    const elapsed = now - state.trackingStartTime;
+    const progress = Math.min(100, (elapsed / TRACKING_DURATION) * 100);
+    ambulancePosition = progress;
+    etaMinutes = Math.max(0, Math.ceil((TRACKING_DURATION - elapsed) / 1000 / 2)); // e.g. 15s left = 8 min
+    // Persist to global state for consistency
+    state.ambulancePosition = ambulancePosition;
+    state.etaMinutes = etaMinutes;
+    // Mark as arrived if done
+    if (progress >= 100 && state.bookingStatus === 'enroute') {
+      updateState({ bookingStatus: 'arrived' });
+    }
+  }
 
   // Update time every second
   useEffect(() => {
@@ -54,32 +86,6 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
       return () => clearTimeout(optimizationTimer);
     }
   }, [state.bookingStatus]);
-
-  // Simulate ambulance position updates
-  useEffect(() => {
-    if (state.bookingStatus === 'enroute') {
-      const positionTimer = setInterval(() => {
-        const newPosition = Math.min(state.ambulancePosition + Math.random() * 5, 95);
-        const newEta = Math.max(1, state.etaMinutes - Math.random() * 0.5);
-        
-        updateState({
-          ambulancePosition: newPosition,
-          etaMinutes: Math.round(newEta)
-        });
-
-        // Simulate arrival
-        if (newPosition >= 95) {
-          updateState({ bookingStatus: 'arrived' });
-          analytics.track('ambulance_arrived', {
-            totalTime: Date.now() - (state.requestTime || Date.now()),
-            finalPosition: newPosition
-          });
-        }
-      }, 2000);
-
-      return () => clearInterval(positionTimer);
-    }
-  }, [state.bookingStatus, state.ambulancePosition]);
 
   // Show popup when ambulance arrives
   useEffect(() => {
@@ -177,7 +183,7 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
           bgColor: 'bg-green-100',
           icon: MapPin,
           showProgress: true,
-          progress: state.ambulancePosition || 50
+          progress: ambulancePosition || 0
         };
       case 'arrived':
         return {
@@ -248,137 +254,6 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      {/* Arrival & Sequence Popups */}
-      {showArrivalPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center relative animate-fade-in border border-blue-100">
-            {popupStep === 0 && (
-              <>
-                <div className="flex flex-col items-center">
-                  <span className="text-4xl mb-2">🚑</span>
-                  <h2 className="text-2xl font-bold mb-2 text-gray-900">Initiate hospital search and route optimization process.</h2>
-                  <p className="text-gray-600 mb-4 text-base">Your ambulance has arrived. Let's find the best hospital and route for you.</p>
-                  <button
-                    onClick={() => setPopupStep(1)}
-                    className="mt-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base"
-                  >
-                    Proceed
-                  </button>
-                </div>
-              </>
-            )}
-            {popupStep === 1 && (
-              <>
-                <div className="flex flex-col items-center animate-pulse">
-                  <span className="text-4xl mb-2">🏥</span>
-                  <div className="mb-4">
-                    <span className="inline-block w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></span>
-                  </div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-1">Locating the closest hospital</h2>
-                  <p className="text-gray-600 text-base">Based on proximity and real-time bed availability.</p>
-                </div>
-              </>
-            )}
-            {popupStep === 2 && (
-              <>
-                <div className="flex flex-col items-center">
-                  <span className="text-4xl mb-2">✅</span>
-                  <h2 className="text-2xl font-bold mb-2 text-green-700">Hospital found</h2>
-                  <p className="text-gray-600 text-base">A suitable hospital has been identified for your needs.</p>
-                </div>
-              </>
-            )}
-            {popupStep === 3 && (
-              <>
-                <div className="flex flex-col items-center animate-pulse">
-                  <span className="text-4xl mb-2">🗺️</span>
-                  <div className="mb-4">
-                    <span className="inline-block w-10 h-10 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></span>
-                  </div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-1">Determining the most efficient route</h2>
-                  <p className="text-gray-600 text-base">Using our intelligent routing system for fastest arrival.</p>
-                </div>
-              </>
-            )}
-            {popupStep === 4 && (
-              <>
-                <div className="flex flex-col items-center">
-                  <span className="text-4xl mb-2">🚦</span>
-                  <h2 className="text-2xl font-bold mb-2 text-green-700">Route found</h2>
-                  <p className="text-gray-600 text-base mb-4">Optimal route calculated.</p>
-                  <button
-                    onClick={() => {
-                      setShowArrivalPopup(false);
-                      setPopupStep(0);
-                      setTimeout(() => setShowHospitalSelect(true), 200);
-                    }}
-                    className="mt-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base"
-                  >
-                    Proceed
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Hospital Selection Modal */}
-      {showHospitalSelect && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-2xl px-4 py-6 sm:px-16 sm:py-12 max-w-6xl w-full text-center relative animate-fade-in border border-blue-100 max-h-[90vh] overflow-y-auto">
-            <span className="text-4xl mb-2 block">🏥</span>
-            <h2 className="text-2xl font-bold mb-2 text-gray-900">Select a Hospital</h2>
-            <p className="text-gray-600 mb-6 text-base">Choose your preferred hospital based on bed availability and cost.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-              {hospitalOptions.map(hospital => (
-                <div
-                  key={hospital.id}
-                  className={`bg-white border-2 rounded-2xl min-w-[250px] md:min-w-[300px] p-5 md:p-7 flex flex-col justify-between shadow-sm transition-all duration-200 hover:shadow-xl hover:border-blue-400 ${selectedHospital?.id === hospital.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'}`}
-                >
-                  <div className="mb-3">
-                    <div className="flex items-center mb-2">
-                      <span className="text-base md:text-xl font-bold text-gray-900 mr-2">{hospital.name}</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 mb-3">
-                      <span className="flex items-center text-green-600 text-sm md:text-base font-medium"><span className="mr-1">🛏️</span>{hospital.availableBeds} beds</span>
-                      <span className="flex items-center text-purple-600 text-sm md:text-base font-medium"><span className="mr-1">💸</span>{hospital.costLevel}</span>
-                      <span className="flex items-center text-yellow-600 text-sm md:text-base font-medium"><span className="mr-1">🚕</span>{hospital.fare} BDT</span>
-                    </div>
-                    <div className="text-xs md:text-sm text-gray-500 mb-3 flex items-center"><MapPin className="h-3 w-3 mr-1 inline-block text-gray-400" />{hospital.address}</div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setSelectedHospital(hospital);
-                      setShowHospitalSelect(false);
-                      const now = Date.now();
-                      const state = (window as any).state;
-                      if (!state.userToHospitalStartTime) {
-                        updateState({
-                          currentPage: 'userToHospitalTracking',
-                          selectedHospital: hospital,
-                          trackingPhase: 'userToHospital',
-                          userToHospitalStartTime: now
-                        });
-                      } else {
-                        updateState({
-                          currentPage: 'userToHospitalTracking',
-                          selectedHospital: hospital,
-                          trackingPhase: 'userToHospital'
-                        });
-                      }
-                    }}
-                    className="mt-2 w-full bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold py-2 md:py-2.5 shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  >
-                    Select
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="text-center mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">
           <MapPin className="inline h-6 w-6 sm:h-8 sm:w-8 mr-3 text-blue-600" />
@@ -417,7 +292,7 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
           {state.bookingStatus === 'enroute' && (
             <div className="text-right">
               <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                {state.etaMinutes} min
+                {etaMinutes} min
               </div>
               <div className="text-gray-500 text-xs sm:text-sm">{t('etaMinutes')}</div>
               <div className="text-xs text-gray-400 mt-1">
@@ -497,6 +372,8 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
         )}
       </div>
 
+      <MapDemo direction="hospitalToUser" />
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
         {/* Live Route Progress */}
         <div className="xl:col-span-2 bg-white rounded-xl shadow-lg p-6 sm:p-8">
@@ -523,13 +400,13 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
               <div className="w-full h-2 bg-gray-300 rounded-full">
                 <div 
                   className="h-2 bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-1000"
-                  style={{ width: `${state.ambulancePosition || 0}%` }}
+                  style={{ width: `${ambulancePosition || 0}%` }}
                 ></div>
               </div>
               {/* Ambulance Icon */}
               <div 
                 className="absolute top-0 transform -translate-y-1/2 transition-all duration-1000"
-                style={{ left: `${state.ambulancePosition || 0}%` }}
+                style={{ left: `${ambulancePosition || 0}%` }}
               >
                 <Truck className="h-4 w-4 sm:h-6 sm:w-6 text-red-600" />
               </div>
@@ -696,6 +573,136 @@ const TrackingScreen: React.FC<TrackingScreenProps> = ({ updateState }) => {
           )}
         </div>
       </div>
+
+      {/* Arrival & Sequence Popups */}
+      {showArrivalPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center relative animate-fade-in border border-blue-100">
+            {popupStep === 0 && (
+              <>
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl mb-2">🚑</span>
+                  <h2 className="text-2xl font-bold mb-2 text-gray-900">Initiate hospital search and route optimization process.</h2>
+                  <p className="text-gray-600 mb-4 text-base">Your ambulance has arrived. Let's find the best hospital and route for you.</p>
+                  <button
+                    onClick={() => setPopupStep(1)}
+                    className="mt-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base"
+                  >
+                    Proceed
+                  </button>
+                </div>
+              </>
+            )}
+            {popupStep === 1 && (
+              <>
+                <div className="flex flex-col items-center animate-pulse">
+                  <span className="text-4xl mb-2">🏥</span>
+                  <div className="mb-4">
+                    <span className="inline-block w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></span>
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">Locating the closest hospital</h2>
+                  <p className="text-gray-600 text-base">Based on proximity and real-time bed availability.</p>
+                </div>
+              </>
+            )}
+            {popupStep === 2 && (
+              <>
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl mb-2">✅</span>
+                  <h2 className="text-2xl font-bold mb-2 text-green-700">Hospital found</h2>
+                  <p className="text-gray-600 text-base">A suitable hospital has been identified for your needs.</p>
+                </div>
+              </>
+            )}
+            {popupStep === 3 && (
+              <>
+                <div className="flex flex-col items-center animate-pulse">
+                  <span className="text-4xl mb-2">🗺️</span>
+                  <div className="mb-4">
+                    <span className="inline-block w-10 h-10 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></span>
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">Determining the most efficient route</h2>
+                  <p className="text-gray-600 text-base">Using our intelligent routing system for fastest arrival.</p>
+                </div>
+              </>
+            )}
+            {popupStep === 4 && (
+              <>
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl mb-2">🚦</span>
+                  <h2 className="text-2xl font-bold mb-2 text-green-700">Route found</h2>
+                  <p className="text-gray-600 text-base mb-4">Optimal route calculated.</p>
+                  <button
+                    onClick={() => {
+                      setShowArrivalPopup(false);
+                      setPopupStep(0);
+                      setTimeout(() => setShowHospitalSelect(true), 200);
+                    }}
+                    className="mt-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base"
+                  >
+                    Proceed
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Hospital Selection Modal */}
+      {showHospitalSelect && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl shadow-2xl px-4 py-6 sm:px-16 sm:py-12 max-w-6xl w-full text-center relative animate-fade-in border border-blue-100 max-h-[90vh] overflow-y-auto">
+            <span className="text-4xl mb-2 block">🏥</span>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900">Select a Hospital</h2>
+            <p className="text-gray-600 mb-6 text-base">Choose your preferred hospital based on bed availability and cost.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+              {hospitalOptions.map(hospital => (
+                <div
+                  key={hospital.id}
+                  className={`bg-white border-2 rounded-2xl min-w-[250px] md:min-w-[300px] p-5 md:p-7 flex flex-col justify-between shadow-sm transition-all duration-200 hover:shadow-xl hover:border-blue-400 ${selectedHospital?.id === hospital.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'}`}
+                >
+                  <div className="mb-3">
+                    <div className="flex items-center mb-2">
+                      <span className="text-base md:text-xl font-bold text-gray-900 mr-2">{hospital.name}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 mb-3">
+                      <span className="flex items-center text-green-600 text-sm md:text-base font-medium"><span className="mr-1">🛏️</span>{hospital.availableBeds} beds</span>
+                      <span className="flex items-center text-purple-600 text-sm md:text-base font-medium"><span className="mr-1">💸</span>{hospital.costLevel}</span>
+                      <span className="flex items-center text-yellow-600 text-sm md:text-base font-medium"><span className="mr-1">🚕</span>{hospital.fare} BDT</span>
+                    </div>
+                    <div className="text-xs md:text-sm text-gray-500 mb-3 flex items-center"><MapPin className="h-3 w-3 mr-1 inline-block text-gray-400" />{hospital.address}</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedHospital(hospital);
+                      setShowHospitalSelect(false);
+                      const now = Date.now();
+                      const state = (window as any).state;
+                      if (!state.userToHospitalStartTime) {
+                        updateState({
+                          currentPage: 'userToHospitalTracking',
+                          selectedHospital: hospital,
+                          trackingPhase: 'userToHospital',
+                          userToHospitalStartTime: now
+                        });
+                      } else {
+                        updateState({
+                          currentPage: 'userToHospitalTracking',
+                          selectedHospital: hospital,
+                          trackingPhase: 'userToHospital'
+                        });
+                      }
+                    }}
+                    className="mt-2 w-full bg-gradient-to-r from-blue-600 to-green-500 text-white rounded-lg font-semibold py-2 md:py-2.5 shadow hover:from-blue-700 hover:to-green-600 transition-colors text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    Select
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

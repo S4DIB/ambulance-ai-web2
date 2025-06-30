@@ -6,13 +6,14 @@ import { analytics } from '../../utils/analytics';
 import MetricsDisplay from '../MetricsDisplay';
 import { metricsSimulator } from '../../utils/metricsData';
 import { HospitalAPI } from '../../utils/emergencyAPI';
+import MapDemo from './MapDemo';
 
 interface TrackingScreenUserToHospitalProps {
   updateState: (updates: any) => void;
   selectedHospital: any;
 }
 
-const TOTAL_ROUTE_TIME = 15 * 60 * 1000; // 15 minutes in ms (simulate total trip time)
+const TOTAL_ROUTE_TIME = 30 * 1000; // 30 seconds for demo
 
 const TrackingScreenUserToHospital: React.FC<TrackingScreenUserToHospitalProps> = ({ updateState, selectedHospital }) => {
   const { t } = useTranslation();
@@ -139,6 +140,7 @@ const TrackingScreenUserToHospital: React.FC<TrackingScreenUserToHospitalProps> 
           </div>
         )}
       </div>
+      <MapDemo direction="userToHospital" />
     </div>
   );
 };
