@@ -12,35 +12,43 @@ interface TrackingScreenUserToHospitalProps {
   selectedHospital: any;
 }
 
+const TOTAL_ROUTE_TIME = 15 * 60 * 1000; // 15 minutes in ms (simulate total trip time)
+
 const TrackingScreenUserToHospital: React.FC<TrackingScreenUserToHospitalProps> = ({ updateState, selectedHospital }) => {
   const { t } = useTranslation();
-  // Initialize from global state if available
-  const initialProgress = (window as any).state.userToHospitalRouteProgress ?? 0;
-  const initialEta = (window as any).state.userToHospitalEtaMinutes ?? 15;
-  const [routeProgress, setRouteProgress] = useState(initialProgress); // 0 to 100
-  const [etaMinutes, setEtaMinutes] = useState(initialEta); // Simulated ETA
-  const [isArrived, setIsArrived] = useState(routeProgress >= 100);
+  const state = (window as any).state;
+  const startTime = state.userToHospitalStartTime || Date.now();
+  // Calculate elapsed time
+  const [now, setNow] = useState(Date.now());
+  const elapsed = Math.max(0, now - startTime);
+  const progress = Math.min(100, (elapsed / TOTAL_ROUTE_TIME) * 100);
+  const eta = Math.max(1, Math.round((TOTAL_ROUTE_TIME - elapsed) / 60000));
+  const [isArrived, setIsArrived] = useState(progress >= 100);
   const [liveMetrics, setLiveMetrics] = useState(metricsSimulator.getLiveOperationalData());
+
+  // Update time every second
+  useEffect(() => {
+    if (isArrived) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [isArrived]);
+
+  // Mark as arrived if progress reaches 100
+  useEffect(() => {
+    if (progress >= 100 && !isArrived) setIsArrived(true);
+    if (progress >= 100) {
+      // End booking and tracking phase
+      state.bookingStatus = 'none';
+      state.trackingPhase = undefined;
+      state.userToHospitalStartTime = undefined;
+    }
+  }, [progress, isArrived, state]);
 
   // Persist progress and ETA to global state
   useEffect(() => {
-    (window as any).state.userToHospitalRouteProgress = routeProgress;
-    (window as any).state.userToHospitalEtaMinutes = etaMinutes;
-  }, [routeProgress, etaMinutes]);
-
-  // Simulate route progress from user to hospital
-  useEffect(() => {
-    if (isArrived) return;
-    const timer = setInterval(() => {
-      setRouteProgress(prev => {
-        const next = Math.min(prev + Math.random() * 6, 100);
-        if (next >= 100) setIsArrived(true);
-        return next;
-      });
-      setEtaMinutes(prev => Math.max(1, prev - Math.random() * 0.7));
-    }, 1800);
-    return () => clearInterval(timer);
-  }, [isArrived]);
+    state.userToHospitalRouteProgress = progress;
+    state.userToHospitalEtaMinutes = eta;
+  }, [progress, eta, state]);
 
   useEffect(() => {
     const timer = setInterval(() => setLiveMetrics(metricsSimulator.getLiveOperationalData()), 1000);
@@ -84,7 +92,7 @@ const TrackingScreenUserToHospital: React.FC<TrackingScreenUserToHospitalProps> 
           {!isArrived && (
             <div className="text-right">
               <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                {Math.round(etaMinutes)} min
+                {eta} min
               </div>
               <div className="text-gray-500 text-xs sm:text-sm">ETA</div>
             </div>
@@ -95,17 +103,17 @@ const TrackingScreenUserToHospital: React.FC<TrackingScreenUserToHospitalProps> 
           <div className="mb-4 sm:mb-6">
             <div className="flex justify-between text-sm text-gray-600 mb-2">
               <span>Your Location</span>
-              <span>{routeProgress.toFixed(2)}% Complete</span>
+              <span>{progress.toFixed(2)}% Complete</span>
               <span>{selectedHospital?.name || 'Hospital'}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3 sm:h-4">
               <div
                 className="bg-gradient-to-r from-blue-500 to-green-500 h-3 sm:h-4 rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${routeProgress}%` }}
+                style={{ width: `${progress}%` }}
               ></div>
             </div>
             <div className="text-center mt-2 text-xs sm:text-sm text-gray-500">
-              {(100 - routeProgress).toFixed(2)}% Remaining
+              {(100 - progress).toFixed(2)}% Remaining
             </div>
           </div>
         )}
@@ -113,7 +121,21 @@ const TrackingScreenUserToHospital: React.FC<TrackingScreenUserToHospitalProps> 
           <div className="text-center py-8">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-green-700 mb-2">Arrived at {selectedHospital?.name || 'Hospital'}!</h2>
-            <p className="text-gray-700 text-base">You have reached your destination. Please proceed to the hospital entrance.</p>
+            <p className="text-gray-700 text-base mb-6">You have reached your destination. Please proceed to the hospital entrance.</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-4">
+              <button
+                className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors text-base"
+                onClick={() => updateState({ currentPage: 'book' })}
+              >
+                Book an Ambulance
+              </button>
+              <button
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-base"
+                onClick={() => updateState({ currentPage: 'assessment' })}
+              >
+                AI Assessment
+              </button>
+            </div>
           </div>
         )}
       </div>

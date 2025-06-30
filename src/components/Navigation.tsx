@@ -75,8 +75,11 @@ const Navigation: React.FC<NavigationProps> = ({ activeScreen, onScreenChange, b
     updateState({ isVideoCallActive: false });
   };
 
+  const trackingActive = activeScreen === 'tracking' || activeScreen === 'userToHospitalTracking';
+  const trackingPhase = (window as any).state.trackingPhase;
+
   const getButtonStyle = (itemId: string) => {
-    const isActive = activeScreen === itemId;
+    const isActive = (itemId === 'tracking') ? trackingActive : activeScreen === itemId;
     let baseStyle = `flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 `;
     
     if (isActive) {
@@ -137,7 +140,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeScreen, onScreenChange, b
                     >
                       <Icon className="h-4 w-4" />
                       <span className="hidden xl:inline">{item.label}</span>
-                      {item.id === 'tracking' && ['dispatched', 'enroute'].includes(bookingStatus) && (
+                      {item.id === 'tracking' && (['dispatched', 'enroute'].includes(bookingStatus) || trackingPhase === 'userToHospital') && (
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1"></div>
                       )}
                     </button>
@@ -227,7 +230,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeScreen, onScreenChange, b
                 >
                   <Icon className="h-5 w-5" />
                   <span>{item.label}</span>
-                  {item.id === 'tracking' && ['dispatched', 'enroute'].includes(bookingStatus) && (
+                  {item.id === 'tracking' && (['dispatched', 'enroute'].includes(bookingStatus) || trackingPhase === 'userToHospital') && (
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1"></div>
                   )}
                 </button>
